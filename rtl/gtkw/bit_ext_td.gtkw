@@ -1,0 +1,23 @@
+[*]
+[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
+[*] Fri Oct 23 23:13:59 2020
+[*]
+[dumpfile] "/home/bt/open-ai-gdp/rtl/vcd/bit_ext.vcd"
+[dumpfile_mtime] "Fri Oct 23 23:10:08 2020"
+[dumpfile_size] 14307
+[savefile] "/home/bt/open-ai-gdp/rtl/gtkw/bit_ext_td.gtkw"
+[timestart] 56470
+[size] 1000 600
+[pos] -1 -1
+*-11.000000 2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_bit_ext.
+[sst_width] 212
+[signals_width] 118
+[sst_expanded] 1
+[sst_vpaned_height] 148
+@29
+tb_bit_ext.bit_ext.a_in[7:0]
+@28
+tb_bit_ext.bit_ext.a_out[11:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,33 @@
+[*]
+[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
+[*] Fri Oct 23 22:30:26 2020
+[*]
+[dumpfile] "/home/bt/open-ai-gdp/rtl/relu_bound.vcd"
+[dumpfile_mtime] "Fri Oct 23 22:26:48 2020"
+[dumpfile_size] 9812
+[savefile] "/home/bt/open-ai-gdp/rtl/relu_bound_td.gtkw"
+[timestart] 0
+[size] 2560 1415
+[pos] -771 -400
+*-18.000000 951000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_relu_bound.
+[sst_width] 212
+[signals_width] 86
+[sst_expanded] 1
+[sst_vpaned_height] 432
+@40000420
+[fpshift_count] 4
+tb_relu_bound.rb.a[7:0]
+@40008420
+[fpshift_count] 4
+tb_relu_bound.rb.ar[7:0]
+@20000
+-
+-
+@20001
+-
+@20000
+-
+-
+[pattern_trace] 1
+[pattern_trace] 0
