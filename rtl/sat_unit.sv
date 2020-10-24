@@ -10,6 +10,6 @@ module sat_unit #(parameter W_IN = 13, parameter W_OUT = 8)
 
     assign a_out = a_in < min_in ? min_out : (a_in > max_in) ? max_out : a_in[W_OUT-1:0];
 
-    initial $display("%d, %d, %d, %d", max_in, min_in, max_out, min_out);
+    //initial $display("%d, %d, %d, %d", max_in, min_in, max_out, min_out);
 
 endmodule
