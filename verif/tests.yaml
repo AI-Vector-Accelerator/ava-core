@@ -1,0 +1,18 @@
+################################################################################
+# YAML file containing configurations for all available tests.
+# The top test is a model example. Strict formatting must be followed.
+# All fields must be present.
+# "name" must be a single string.
+# "rtl_files" must be a list of strings.
+# "tb" must be a single string
+################################################################################
+
+# This test doesn't use any RTL files. It just calls some stuff from the testbench.
+# But to make it realistic I've added some anyway
+- name: sample_test
+  rtl_files:
+    - processing_element.sv
+    - bit_ext.sv
+    - relu_bound.sv
+    - sat_unit.sv
+  tb: tb_sample_test.sv
