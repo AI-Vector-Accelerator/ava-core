@@ -4,7 +4,8 @@
 
 module tb_relu_bound;
 
-logic signed [7:0] in, out; 
+logic signed [7:0] in;
+logic [6:0] out; 
 relu_bound #(.W(8)) rb(in, out);
 
 logic signed [7:0] i;

@@ -73,13 +73,14 @@ module processing_element
     sat_unit #(.W_IN(13), .W_OUT(12)) sat_unit_12 (add_out, add_sat12_out);
     assign tree_o = add_sat12_out;
 
-    logic [7:0] relu_in, relu_out;
+    logic [7:0] relu_in;
+    logic [6:0] relu_out; // Unsigned
     assign relu_in = mux_relu ? sat8_out : a;
     relu_bound #(.W(8)) relu6 (relu_in, relu_out);
  
     logic [11:0] sat8_out_ex, relu_out_ex;
     bit_ext #(.W_IN(8), .W_OUT(12)) sat8_bex(sat8_out, sat8_out_ex);
-    bit_ext #(.W_IN(8), .W_OUT(12)) relu_bex(relu_out, relu_out_ex);
+    assign relu_out_ex = {5'b0, relu_out};
 
     logic [11:0] res_out;
 
