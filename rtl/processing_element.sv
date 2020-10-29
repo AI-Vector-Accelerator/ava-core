@@ -15,6 +15,7 @@ module processing_element
      input logic mux_comb,
      input logic enable_acc,
      input logic clk,
+     input logic n_reset,
 
      output logic [7:0] r,
      output logic [11:0] tree_o);
@@ -95,8 +96,10 @@ module processing_element
         endcase
     end
 
-    always_ff @(posedge clk) begin
-        if(enable_acc) begin
+    always_ff @(posedge clk, negedge n_reset) begin
+        if(~n_reset) begin
+            acc_reg <= 'd0;        
+        end if(enable_acc) begin
             acc_reg <= res_out;
         end
     end
