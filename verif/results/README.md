@@ -1,0 +1,1 @@
+Tests create directories in here to use for their libraries and results. These test directories are ignored by Git. If a directory already exists in here for a test and the test is run again, it will fail so data is not overwritten.
