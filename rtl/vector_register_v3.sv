@@ -22,7 +22,6 @@ input wire [Registerlength-1:0]writeData [numWritePorts-1:0]
 logic  [Registerlength-1:0]vecRegisters [numRegisters-1:0] ;
 
 
-
 always_comb
 begin
 
@@ -61,22 +60,18 @@ end
 always_ff@(posedge clk, negedge nreset)
 
 if (~nreset)
-
-begin
-
-for(int i =0;i<numRegisters;i++)
-begin
-vecRegisters[i]<=0;
+	begin
+	for(int i =0;i<numRegisters;i++)
+		begin
+		vecRegisters[i]<=0;
+		end
 end
-end
-
 
 else
-begin
+begin	
 
-if(writeEn[0] && writeAddress[0]!=0 )
-vecRegisters[writeAddress[0]]<=writeData[0];
-
+	if(writeEn[0] && writeAddress[0]!=0 )
+		vecRegisters[writeAddress[0]]<=writeData[0];
 end
 
 endmodule
