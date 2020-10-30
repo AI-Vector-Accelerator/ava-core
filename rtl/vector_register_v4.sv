@@ -20,7 +20,7 @@ input  [Registerlength-1:0]writeData [numWritePorts-1:0]
 
 
 logic  [Registerlength-1:0]vecRegisters [numRegisters-1:0] ;
-wire  [Registerlength-1:0]nextVecRegisters [numRegisters-1:0] ;
+logic  [Registerlength-1:0]nextVecRegisters [numRegisters-1:0] ;
 
 
 
