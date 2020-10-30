@@ -11,7 +11,7 @@ parameter numWritePorts=1
 input wire clk, nreset,
 input wire [AddressLength-1:0] readAddress [numReadPorts-1:0] ,
 input wire  [(Registerlength/elementSize)-1:0] readEn[2:0],
-output wire [Registerlength-1:0] ReadData [numReadPorts-1:0] ,
+output logic [Registerlength-1:0] ReadData [numReadPorts-1:0] ,
 input wire  [AddressLength-1:0] writeAddress [numWritePorts-1:0],
 input wire  writeEn[numWritePorts-1:0],
 input wire [Registerlength-1:0]writeData [numWritePorts-1:0] 
