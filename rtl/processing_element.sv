@@ -61,8 +61,8 @@ module processing_element
         case(mux_sat8)
             // Sign extend 12-bit native data to match adder output
             2'd0: sat8_in = {c_acc[11],c_acc};
-            2'd1: sat8_in = add_out;
-            2'd2: sat8_in = {mul_out_trunc[11],mul_out_trunc};
+            2'd1: sat8_in = {mul_out_trunc[11],mul_out_trunc};
+            2'd2: sat8_in = add_out;
             2'd3: sat8_in = 13'd0; // Not Implemented;
             default: sat8_in = 13'd0;
         endcase
