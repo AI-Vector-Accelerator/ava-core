@@ -16,3 +16,11 @@
     - relu_bound.sv
     - sat_unit.sv
   tb: tb_sample_test.sv
+
+- name: processing_element_test
+  rtl_files:
+    - processing_element.sv
+    - bit_ext.sv
+    - relu_bound.sv
+    - sat_unit.sv
+  tb: tb_processing_element_test.sv

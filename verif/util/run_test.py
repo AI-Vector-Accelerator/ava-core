@@ -19,7 +19,7 @@ def check_test_yaml(test):
     else:
         print("ERROR: YAML entry for " + test['name'] + " has no rtl_files field")
         exit(1)
-    
+
     # Check test has tb field, and that it isn't empty
     if "tb" in test:
         if type(test['tb']) == list:
@@ -119,13 +119,13 @@ for test in test_list:
     results_dir = make_test_dir(test['name'])
     if results_dir == "":
         continue
-    
+
     with safe_chdir(results_dir):
 
         print("Running test: " + test['name'])
         print("Results directory: " + results_dir)
 
-        tb_path = os.path.join(verif_path, test['tb']) 
+        tb_path = os.path.join(verif_path, test['tb'])
         print("TB path: " + tb_path)
         rtl_string = get_rtl_files(test['rtl_files'])
 
@@ -144,7 +144,7 @@ for test in test_list:
             # expression, fsm, toggle)
             vlog_cmd += " +cover=sbceft"
         run_cmd(vlog_cmd)
-        
+
         # Run sim, GUI if desired, coverage if desired. If coverage is enabled
         # it is automatically stored in coverage.ucdb in the test's directory
         tb_module = test['tb'].rstrip(".sv")
@@ -152,7 +152,7 @@ for test in test_list:
             do_cmd = "\"coverage save -onexit coverage.ucdb; run -all\""
         else:
             do_cmd = "\"run -all\""
-        vsim_cmd = "vsim " + tb_module + " -work work -do " + do_cmd
+        vsim_cmd = "vsim " + tb_module + " -work work -sv_seed random -do " + do_cmd
         if args.gui is False:
             # GUI is enabled unless you specify batch
             vsim_cmd += " -batch"
