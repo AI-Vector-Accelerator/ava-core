@@ -2,16 +2,18 @@
 // proc_unit.sv module made by me in my third-year project. This is because the
 // functionality is similar and therefore I'm using what I learnt previously.
 
+`include "defs.sv"
+
 module pe_32 (
     input wire [31:0] a,
     input wire [31:0] b,
     input wire [31:0] c,
-    input wire [3:0] op, // TODO: check width is still right
+    input pe_arith_op_t op,
     input wire [1:0] vsew,
     input wire [1:0] widening, // 2'd1 for widening, 2'd2 for quad widening
     input wire [1:0] mul_us, // Specifies each multiplier input as signed or unsigned
-    input wire [1:0] saturate_mode,
-    input wire [1:0] output_mode,
+    input pe_saturation_mode_t saturate_mode,
+    input pe_output_mode_t output_mode,
     output logic [31:0] out
     // output logic flag_saturated // TODO: add this flag for CSRs
 );
@@ -60,31 +62,41 @@ begin
     arith_result = 1'b0;
 
     case (op)
-        4'h0: // Add
+        // 4'h0: // Add
+        PE_ARITH_ADD:
             arith_result = add_out;
-        4'h1: // Sub
+        // 4'h1: // Sub
+        PE_ARITH_SUB:
         begin
             arith_result = add_out;
             subtract = 1'b1;
         end
-        4'h2: // Left-shift
+        // 4'h2: // Left-shift
+        PE_ARITH_LSHIFT:
             arith_result = {1'b0, (a << b)};
-        4'h3: // Multiply
+        // 4'h3: // Multiply
+        PE_ARITH_MUL:
             arith_result = selected_mult_out;
-        4'h4: // Multiply-add
+        // 4'h4: // Multiply-add
+        PE_ARITH_MULADD:
         begin
             macc = 1'b1;
             arith_result = add_out;
         end
-        4'h5: // XOR
+        // 4'h5: // XOR
+        PE_ARITH_XOR:
             arith_result = {1'b0, (a ^ b)};
-        4'h6: // Right-shift
+        // 4'h6: // Right-shift
+        PE_ARITH_RSHIFT_LOG:
             arith_result = {1'b0, (a >> b)};
-        4'h7: // Right-shift (arithmetic)
+        // 4'h7: // Right-shift (arithmetic)
+        PE_ARITH_RSHIFT_AR:
             arith_result = {1'b0, (a >>> b)};
-        4'h8: // OR
+        // 4'h8: // OR
+        PE_ARITH_OR:
             arith_result = {1'b0, (a | b)};
-        4'h9: // AND
+        // 4'h9: // AND
+        PE_ARITH_AND:
             arith_result = {1'b0, (a & b)};
     endcase
 end
@@ -112,7 +124,7 @@ begin
         add_a = {1'b0, mult_wide[31:0]};
         add_b = {1'b0, c};
     end
-    else if (saturate_mode != 2'b0)
+    else if (saturate_mode != PE_SAT_NONE)
     begin
         // Need to sign extend for saturated ops as another bit is gained to be
         // used for saturation. Technically this means this instruction is always
@@ -139,8 +151,7 @@ end
 // toggle this as we might need to saturate it and keep lower bits later on
 always_comb
 begin
-    if (saturate_mode == 2'd2)
-    // Select upper element bits
+    if (saturate_mode == PE_SAT_UPPER)
         case (vsew)
             2'd0: // 8b
                 selected_mult_out = {{24{1'b0}}, mult_wide[8:0]};
@@ -222,18 +233,18 @@ always_comb
 begin
     out = arith_result;
     case (output_mode)
-        2'd0: // Result
-            if (saturate_mode == 2'b0)
+        PE_OP_MODE_RESULT:
+            if (saturate_mode == PE_SAT_NONE)
                 out = arith_result;
             else
                 out = sat_result;
-        2'd1: // Pass max
+        PE_OP_MODE_PASS_MAX:
             // Will do arithmetic op of a-b. If negative, b is larger so pass b
             if (arith_result[31])
                 out = b;
             else
                 out = a;
-        2'd2: // Pass min
+        PE_OP_MODE_PASS_MIN:
             if (arith_result[31])
                 out = a;
             else
