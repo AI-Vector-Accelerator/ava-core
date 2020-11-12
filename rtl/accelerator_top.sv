@@ -46,7 +46,15 @@ wire [127:0] pe_out_combined;
 vector_csrs vcsrs0 (
     .vl(vl),
     .vsew(vsew),
-    .vlmul(vlmul)
+    .vlmul(vlmul),
+    .clk(),
+    .n_reset(),
+    .avl_in(), // needs to be rs1 data
+    .vtype_in(), // needs to come from immediate argument
+    .write(),
+    .saturate_flag(),
+    .preserve_vl(),
+    .set_vl_max()
 );
 
 ////////////////////////////////////////
