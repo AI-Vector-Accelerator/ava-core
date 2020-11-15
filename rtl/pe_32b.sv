@@ -2,7 +2,8 @@
 // proc_unit.sv module made by me in my third-year project. This is because the
 // functionality is similar and therefore I'm using what I learnt previously.
 
-`include "defs.sv"
+// `include "defs.sv"
+import accelerator_pkg::*;
 
 module pe_32 (
     output logic [31:0] out

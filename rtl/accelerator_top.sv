@@ -1,7 +1,17 @@
-`include "defs.sv"
+// `include "defs.sv"
+import accelerator_pkg::*;
 
 module accelerator_top (
-    // Guessing these ports will match the OBI port on the APU
+    output logic [31:0] apu_result,
+    output logic [4:0] apu_flags_o,
+    output logic apu_gnt,
+    output logic apu_rvalid,
+    input wire clk,
+    input wire n_reset,
+    input wire apu_req,
+    input wire [31:0] apu_operands [2:0],
+    input wire [5:0] apu_op,
+    input wire [14:0] apu_flags_i
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -17,10 +27,20 @@ wire [1:0] vlmul;
 wire [4:0] vs1_addr;
 wire [4:0] vs2_addr;
 wire [4:0] vd_addr;
-pe_arith_op_t op;
+wire [31:0] scalar_operand1;
+wire [31:0] scalar_operand2;
+wire csr_write;
+wire preserve_vl;
+wire set_vl_max;
+wire [1:0] elements_to_write;
+wire vec_reg_write;
+wire vec_reg_widening; // Could be replaced with widening[1:0] used for PE
+pe_arith_op_t pe_op;
 pe_saturation_mode_t saturation_mode;
 pe_output_mode_t output_mode;
 wire pe_ripple_inputs;
+wire [1:0] pe_mul_us;
+wire [1:0] pe_widening;
 
 // VLSU OUTPUTS
 
@@ -47,22 +67,34 @@ vector_csrs vcsrs0 (
     .vl(vl),
     .vsew(vsew),
     .vlmul(vlmul),
-    .clk(),
-    .n_reset(),
+    .clk(clk),
+    .n_reset(n_reset),
     .avl_in(), // needs to be rs1 data
     .vtype_in(), // needs to come from immediate argument
-    .write(),
+    .write(csr_write),
     .saturate_flag(),
-    .preserve_vl(),
-    .set_vl_max()
+    .preserve_vl(preserve_vl),
+    .set_vl_max(set_vl_max)
 );
 
 ////////////////////////////////////////
 // DECODER
 vector_decoder vdec0 (
+    .apu_rvalid(apu_rvalid),
+    .apu_gnt(apu_gnt),
+    .scalar_operand1(scalar_operand1),
+    .scalar_operand2(scalar_operand2),
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
     .vd_addr(vd_addr),
+    .clk(clk),
+    .n_reset(n_reset),
+    .apu_req(apu_req),
+    .apu_operands(apu_operands),
+    .apu_op(apu_op),
+    .apu_flags_i(apu_flags_i),
+    .vl(vl),
+
     .pe_ripple_inputs(pe_ripple_inputs),
 );
 
@@ -75,13 +107,13 @@ vector_registers vreg0 (
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
     .vs3_data(vs3_data),
-    .vd_data(),
-    .vsew(),
-    .elements_to_write(),
-    .clk(),
-    .n_reset(),
-    .write(),
-    .widening_op() // Could replace this with widening[1:0] as in PEs
+    .vd_data(), // Presumably this will need some muxing
+    .vsew(vsew),
+    .elements_to_write(elements_to_write),
+    .clk(clk),
+    .n_reset(n_reset),
+    .write(vec_reg_write),
+    .widening_op(vec_reg_widening) // Could replace this with widening[1:0] as in PEs
 );
 
 ////////////////////////////////////////
@@ -140,8 +172,8 @@ pe_32b pe0 (
     .c(vs3_data[31:0]),
     .op(op),
     .vsew(vsew),
-    .widening(),
-    .mul_us(),
+    .widening(pe_widening),
+    .mul_us(pe_mul_us),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode)
 );
@@ -153,8 +185,8 @@ pe_32b pe1 (
     .c(vs3_data[63:32]),
     .op(op),
     .vsew(vsew),
-    .widening(),
-    .mul_us(),
+    .widening(pe_widening),
+    .mul_us(pe_mul_us),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode)
 );
@@ -166,8 +198,8 @@ pe_32b pe2 (
     .c(vs3_data[95:64]),
     .op(op),
     .vsew(vsew),
-    .widening(),
-    .mul_us(),
+    .widening(pe_widening),
+    .mul_us(pe_mul_us),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode)
 );
@@ -179,8 +211,8 @@ pe_32b pe3 (
     .c(vs3_data[127:96]),
     .op(op),
     .vsew(vsew),
-    .widening(),
-    .mul_us(),
+    .widening(pe_widening),
+    .mul_us(pe_mul_us),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode)
 );
