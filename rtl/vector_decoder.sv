@@ -13,12 +13,13 @@ module vector_decoder (
     output logic preserve_vl,
     output logic set_vl_max,
     output logic [1:0] elements_to_write,
+    output logic [1:0] cycle_count,
     output logic vec_reg_write,
     output logic vec_reg_widening, // Could be replaced with pe_widening[1:0]?
     output pe_arith_op_t pe_op,
     output pe_saturation_mode_t saturation_mode,
     output pe_output_mode_t output_mode,
-    output logic pe_ripple_inputs,
+    output pe_operand_t operand_select,
     output logic [1:0] pe_mul_us,
     output logic [1:0] pe_widening,
     input wire clk,
@@ -33,7 +34,7 @@ module vector_decoder (
 enum logic {WAIT, EXEC} state, next_state;
 
 logic [1:0] max_cycle_count;
-logic [1:0] cycle_count;
+// logic [1:0] cycle_count;
 logic multi_cycle_instr;
 logic fix_vd_addr;
 
@@ -156,6 +157,8 @@ begin
         if (cycle_count == max_cycle_count)
         // On last cycle, work out how many elements remain
             elements_to_write = vl[1:0];
+        else if (operand_select == PE_OPERAND_RIPPLE)
+            elements_to_write = 2'd1;
         else
             elements_to_write = 2'd0;
     end
@@ -172,9 +175,9 @@ begin
     vec_reg_write = 1'b0;
     vec_reg_widening = 1'b0;
     pe_op = PE_ARITH_ADD;
+    operand_select = PE_OPERAND_VS1;
     saturation_mode = PE_SAT_NONE;
     output_mode = PE_OP_MODE_RESULT;
-    pe_ripple_inputs = 1'b0;
     pe_mul_us = 2'b00;
     pe_widening = 2'b00;
     multi_cycle_instr = 1'b0;
@@ -225,7 +228,7 @@ begin
                         // end
                         if (funct3 == V_OPMVV) // vredsum
                         begin
-                            pe_ripple_inputs = 1'b1;
+                            operand_select = PE_OPERAND_RIPPLE;
                             fix_vd_addr = 1'b1;
                         end
                     end
@@ -258,7 +261,7 @@ begin
                         else if (funct3 == V_OPMVV)
                         begin
                             fix_vd_addr = 1'b1;
-                            pe_ripple_inputs = 1'b1;
+                            operand_select = PE_OPERAND_RIPPLE;
                         end
                     end
 
@@ -316,6 +319,12 @@ begin
                         pe_op = PE_ARITH_SLL;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
+                        else if (funct3 == OPIVI)
+                            operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
                     // vsmul
@@ -325,6 +334,10 @@ begin
                         saturation_mode = PE_SAT_UPPER;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
                     end
 
                     // vsrl
@@ -333,6 +346,12 @@ begin
                         pe_op = PE_ARITH_SRL;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
+                        else if (funct3 == OPIVI)
+                            operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
                     // vsra
@@ -341,6 +360,12 @@ begin
                         pe_op = PE_ARITH_SRA;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
+                        else if (funct3 == OPIVI)
+                            operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
                     // vwredsum
@@ -352,7 +377,7 @@ begin
                         fix_vd_addr = 1'b1;
                         vec_reg_widening = 1'b1;
                         multi_cycle_instr = 1'b1;
-                        // Doesn't matter as only saturation uses this?
+                        // Should unify widening here really
                         // pe_widening = 2'b01;
                     end
 
@@ -363,8 +388,11 @@ begin
                         vec_reg_write = 1'b1;
                         vec_reg_widening = 1'b1;
                         multi_cycle_instr = 1'b1;
-                        // Doesn't matter as only saturation uses this?
                         // pe_widening = 2'b01;
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
                     end
 
                     default:

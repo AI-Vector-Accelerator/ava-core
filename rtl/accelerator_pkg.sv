@@ -28,6 +28,14 @@ typedef enum logic [1:0] {
     PE_SAT_UPPER
 } pe_saturation_mode_t;
 
+// PE operand selection
+typdef enum logic [1:0] {
+    PE_OPERAND_VS1,
+    PE_OPERAND_SCALAR,
+    PE_OPERAND_IMMEDIATE,
+    PE_OPERAND_RIPPLE
+} pe_operand_t;
+
 // Major opcodes converted into 2 bits for the vector accelerator
 parameter V_MAJOR_LOAD_FP   = 2'b00;
 parameter V_MAJOR_STORE_FP  = 2'b01;
