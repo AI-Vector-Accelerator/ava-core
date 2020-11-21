@@ -5,6 +5,7 @@ import accelerator_pkg::*;
 
 module arith_stage (
     output logic [127:0] arith_output,
+    output logic [127:0] replicated_scalar, // Want this output for vmv.v.i
     input wire clk,
     input wire n_reset,
     input wire [127:0] vs1_data,
@@ -16,18 +17,17 @@ module arith_stage (
     input wire [1:0] elements_to_write,
     input wire [1:0] cycle_count,
     input pe_arith_op_t op,
-    input pe_saturate_mode_t saturation_mode,
+    input pe_saturation_mode_t saturation_mode,
     input pe_output_mode_t output_mode,
     input pe_operand_t operand_select,
     input wire [1:0] widening,
-    input wire 1:0] mul_us,
-    input wire [2:0] vl,
-
+    input wire [1:0] mul_us,
+    input wire [2:0] vl
 );
 
 logic [31:0] reduction_intermediate_reg;
 
-logic [127:0] replicated_scalar;
+// logic [127:0] replicated_scalar;
 
 wire [31:0] pe0_out;
 wire [31:0] pe1_out;
@@ -125,10 +125,10 @@ always_comb
         end
         PE_OPERAND_IMMEDIATE:
         begin
-            pe0_b_data = imm_operand[31:0];
-            pe1_b_data = imm_operand[63:32];
-            pe2_b_data = imm_operand[95:54];
-            pe3_b_data = imm_operand[127:96];
+            pe0_b_data = {'0, imm_operand[4:0]};
+            pe1_b_data = {'0, imm_operand[4:0]};
+            pe2_b_data = {'0, imm_operand[4:0]};
+            pe3_b_data = {'0, imm_operand[4:0]};
         end
         PE_OPERAND_RIPPLE:
         begin

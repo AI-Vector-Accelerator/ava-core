@@ -6,7 +6,7 @@
 import accelerator_pkg::*;
 
 module pe_32 (
-    output logic [31:0] out
+    output logic [31:0] out,
     // output logic flag_saturated // TODO: add this flag for CSRs
     input wire [31:0] a,
     input wire [31:0] b,
@@ -16,7 +16,7 @@ module pe_32 (
     input wire [1:0] widening, // 2'd1 for widening, 2'd2 for quad widening
     input wire [1:0] mul_us, // Specifies each multiplier input as signed or unsigned
     input pe_saturation_mode_t saturate_mode,
-    input pe_output_mode_t output_mode,
+    input pe_output_mode_t output_mode
 );
 
 // Usually input "a" is vs2, input "b" is vs1 and "c" is vs3/vd. (This is for

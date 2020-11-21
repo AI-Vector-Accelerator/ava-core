@@ -4,8 +4,9 @@ import accelerator_pkg::*;
 module vector_decoder (
     output logic apu_rvalid,
     output logic apu_gnt,
-    output logic [31:0] scalar_operand1;
-    output logic [31:0] scalar_operand2;
+    output logic [31:0] scalar_operand1,
+    output logic [31:0] scalar_operand2,
+    output logic [11:0] immediate_operand,
     output logic [4:0] vs1_addr,
     output logic [4:0] vs2_addr,
     output logic [4:0] vd_addr,
@@ -15,13 +16,14 @@ module vector_decoder (
     output logic [1:0] elements_to_write,
     output logic [1:0] cycle_count,
     output logic vec_reg_write,
-    output logic vec_reg_widening, // Could be replaced with pe_widening[1:0]?
+    output vreg_wb_src_t vd_data_src,
     output pe_arith_op_t pe_op,
     output pe_saturation_mode_t saturation_mode,
     output pe_output_mode_t output_mode,
     output pe_operand_t operand_select,
     output logic [1:0] pe_mul_us,
-    output logic [1:0] pe_widening,
+    output logic [1:0] widening,
+    output apu_result_src_t apu_result_select,
     input wire clk,
     input wire n_reset,
     input wire apu_req,
@@ -147,6 +149,11 @@ begin
         vs2_addr = source2 + cycle_count;
         vd_addr = destination + cycle_count;
     end
+
+    if (funct3 == V_OPCFG)
+        immediate_operand = reg_apu_operands[0][30:20];
+    else
+        immediate_operand = {'0, reg_apu_operands[0][19:15]};
 end
 
 always_comb
@@ -173,13 +180,14 @@ begin
     preserve_vl = 1'b0;
     set_vl_max = 1'b0;
     vec_reg_write = 1'b0;
-    vec_reg_widening = 1'b0;
+    vd_data_src = VREG_WB_SRC_ARITH;
     pe_op = PE_ARITH_ADD;
     operand_select = PE_OPERAND_VS1;
     saturation_mode = PE_SAT_NONE;
     output_mode = PE_OP_MODE_RESULT;
     pe_mul_us = 2'b00;
-    pe_widening = 2'b00;
+    widening = 2'b00;
+    apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
 
     // Used to control decoder module itself
@@ -188,20 +196,21 @@ begin
     // Control signals during instruction execution
     if (state == EXEC)
     begin
-        if (major_opcode == LOAD_FP)
+        if (major_opcode == V_MAJOR_LOAD_FP)
         begin
-
+            $error("Unimplemented LOAD_FP instruction");
         end
-        else if (major_opcode == STORE_FP)
+        else if (major_opcode == V_MAJOR_STORE_FP)
         begin
-
+            $error("Unimplemented STORE_FP instruction");
         end
-        else if (major_opcode == OP_V)
+        else if (major_opcode == V_MAJOR_OP_V)
         begin
             // Consider vsetvli instructions separately (different format)
             if (funct3 == V_OPCFG)
             begin
                 csr_write = 1'b1;
+                apu_result_select = APU_RESULT_SRC_VL;
                 if (source1 == '0)
                 begin
                     if (destination == '0)
@@ -213,7 +222,7 @@ begin
             else
             begin
                 // Look for all other OP-V instructions
-                case (funct6):
+                case (funct6)
 
                     // vadd, vredsum
                     6'b000000:
@@ -255,10 +264,10 @@ begin
                     begin
                         pe_op = PE_ARITH_SUB;
                         vec_reg_write = 1'b1;
-                        output_mode = PE_OP_PASS_MAX;
+                        output_mode = PE_OP_MODE_PASS_MAX;
                         multi_cycle_instr = 1'b1;
                         // vredmax
-                        else if (funct3 == V_OPMVV)
+                        if (funct3 == V_OPMVV)
                         begin
                             fix_vd_addr = 1'b1;
                             operand_select = PE_OPERAND_RIPPLE;
@@ -292,15 +301,15 @@ begin
                     // VWXUNARY0 (vmv.x.s)
                     6'b010000:
                     begin
-                        // TODO: honestly don't know what to do for now
-                        vec_reg_write = 1'b1;
+                        apu_result_select = APU_RESULT_SRC_VS2_0;
                     end
 
                     // vmv (.vi)
                     6'b010111:
                     begin
-                        // TODO: honestly don't know what to do for now
                         vec_reg_write = 1'b1;
+                        multi_cycle_instr = 1'b1;
+                        vd_data_src = VREG_WB_SRC_SCALAR;
                     end
 
                     // vsadd
@@ -316,14 +325,14 @@ begin
                     6'b100101:
                     begin
                         // Different variants???
-                        pe_op = PE_ARITH_SLL;
+                        pe_op = PE_ARITH_LSHIFT;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == OPIVX)
+                        else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
-                        else if (funct3 == OPIVI)
+                        else if (funct3 == V_OPIVI)
                             operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
@@ -336,35 +345,35 @@ begin
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == OPIVX)
+                        else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
                     end
 
                     // vsrl
                     6'b101000:
                     begin
-                        pe_op = PE_ARITH_SRL;
+                        pe_op = PE_ARITH_RSHIFT_LOG;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == OPIVX)
+                        else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
-                        else if (funct3 == OPIVI)
+                        else if (funct3 == V_OPIVI)
                             operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
                     // vsra
                     6'b101001:
                     begin
-                        pe_op = PE_ARITH_SRA;
+                        pe_op = PE_ARITH_RSHIFT_AR;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == OPIVX)
+                        else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
-                        else if (funct3 == OPIVI)
+                        else if (funct3 == V_OPIVI)
                             operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
@@ -372,13 +381,11 @@ begin
                     6'b110001:
                     begin
                         pe_op = PE_ARITH_ADD;
-                        pe_ripple_inputs = 1'b1;
+                        operand_select = PE_OPERAND_RIPPLE;
                         vec_reg_write = 1'b1;
                         fix_vd_addr = 1'b1;
-                        vec_reg_widening = 1'b1;
                         multi_cycle_instr = 1'b1;
-                        // Should unify widening here really
-                        // pe_widening = 2'b01;
+                        widening = 2'b01;
                     end
 
                     // vwmul
@@ -386,12 +393,11 @@ begin
                     begin
                         pe_op = PE_ARITH_MUL;
                         vec_reg_write = 1'b1;
-                        vec_reg_widening = 1'b1;
                         multi_cycle_instr = 1'b1;
-                        // pe_widening = 2'b01;
+                        widening = 2'b01;
                         if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == OPIVX)
+                        else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
                     end
 
