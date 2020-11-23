@@ -72,7 +72,7 @@ logic [3:0] wr_en2;
 logic [3:0] wr_en3;
 
 // Effective vsew can be modified for widening ops
-logic eff_vsew;
+logic [1:0] eff_vsew;
 
 
 // REGISTER WRITE

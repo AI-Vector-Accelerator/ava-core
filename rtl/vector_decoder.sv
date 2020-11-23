@@ -18,7 +18,7 @@ module vector_decoder (
     output logic vec_reg_write,
     output vreg_wb_src_t vd_data_src,
     output pe_arith_op_t pe_op,
-    output pe_saturation_mode_t saturation_mode,
+    output pe_saturate_mode_t saturate_mode,
     output pe_output_mode_t output_mode,
     output pe_operand_t operand_select,
     output logic [1:0] pe_mul_us,
@@ -47,17 +47,17 @@ logic [14:0] reg_apu_flags_i;
 
 // Assign variables for individual parts of instructions for readability
 logic [2:0] funct3;
-logic [1:0] major_opcode;
+logic [6:0] major_opcode;
 logic [5:0] funct6;
 logic [4:0] source1;
 logic [4:0] source2;
 logic [4:0] destination;
-assign funct3 = reg_apu_op[5:3];
-assign major_opcode = reg_apu_op[1:0];
-assign funct6 = reg_apu_operands[0][11:6];
-assign source1 = apu_operands[0][19:15];
-assign source2 = apu_operands[0][24:20];
-assign destination = apu_operands[0][11:7];
+assign funct3 = reg_apu_operands[0][14:12];
+assign major_opcode = reg_apu_operands[0][6:0];
+assign funct6 = reg_apu_operands[0][31:26];
+assign source1 = reg_apu_operands[0][19:15];
+assign source2 = reg_apu_operands[0][24:20];
+assign destination = reg_apu_operands[0][11:7];
 
 assign scalar_operand1 = reg_apu_operands[1];
 assign scalar_operand2 = reg_apu_operands[2];
@@ -159,6 +159,7 @@ end
 always_comb
 begin
     elements_to_write = 2'd0;
+
     if (multi_cycle_instr)
     begin
         if (cycle_count == max_cycle_count)
@@ -183,7 +184,7 @@ begin
     vd_data_src = VREG_WB_SRC_ARITH;
     pe_op = PE_ARITH_ADD;
     operand_select = PE_OPERAND_VS1;
-    saturation_mode = PE_SAT_NONE;
+    saturate_mode = PE_SAT_NONE;
     output_mode = PE_OP_MODE_RESULT;
     pe_mul_us = 2'b00;
     widening = 2'b00;
@@ -310,13 +311,14 @@ begin
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         vd_data_src = VREG_WB_SRC_SCALAR;
+                        operand_select = PE_OPERAND_IMMEDIATE;
                     end
 
                     // vsadd
                     6'b100001:
                     begin
                         pe_op = PE_ARITH_ADD;
-                        saturation_mode = PE_SAT;
+                        saturate_mode = PE_SAT;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                     end
@@ -340,7 +342,7 @@ begin
                     6'b100111:
                     begin
                         pe_op = PE_ARITH_MUL;
-                        saturation_mode = PE_SAT_UPPER;
+                        saturate_mode = PE_SAT_UPPER;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)

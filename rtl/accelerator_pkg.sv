@@ -32,7 +32,7 @@ typedef enum logic [1:0] {
     PE_SAT_NONE,
     PE_SAT,
     PE_SAT_UPPER
-} pe_saturation_mode_t;
+} pe_saturate_mode_t;
 
 // PE operand selection - select B operand for PE
 // PE_OPERAND_VS1: vector from vs1 vector register
@@ -65,10 +65,14 @@ typedef enum logic {
 }   apu_result_src_t;
 
 // Major opcodes converted into 2 bits for the vector accelerator
-parameter V_MAJOR_LOAD_FP   = 2'b00;
-parameter V_MAJOR_STORE_FP  = 2'b01;
-parameter V_MAJOR_OP_V      = 2'b10;
-parameter V_MAJOR_CUSTOM    = 2'b11;
+// parameter V_MAJOR_LOAD_FP   = 2'b00;
+// parameter V_MAJOR_STORE_FP  = 2'b01;
+// parameter V_MAJOR_OP_V      = 2'b10;
+// parameter V_MAJOR_CUSTOM    = 2'b11;
+parameter V_MAJOR_LOAD_FP   = 7'b0000111;
+parameter V_MAJOR_STORE_FP  = 7'b0100111;
+parameter V_MAJOR_OP_V      = 7'b1010111;
+// parameter V_MAJOR_CUSTOM    = 7'b;
 
 // funct3 bit fields from vector instructions (describe operand/source types)
 parameter V_OPIVV = 3'b000;

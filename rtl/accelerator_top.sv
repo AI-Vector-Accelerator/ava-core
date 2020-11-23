@@ -38,7 +38,7 @@ wire [1:0] cycle_count;
 wire vec_reg_write;
 vreg_wb_src_t vd_data_src;
 pe_arith_op_t pe_op;
-pe_saturation_mode_t saturation_mode;
+pe_saturate_mode_t saturate_mode;
 pe_output_mode_t output_mode;
 pe_operand_t operand_select;
 wire [1:0] pe_mul_us;
@@ -69,9 +69,9 @@ vector_csrs vcsrs0 (
     .clk(clk),
     .n_reset(n_reset),
     .avl_in(scalar_operand1),
-    .vtype_in(immediate_operand),
+    .vtype_in(immediate_operand[4:0]),
     .write(csr_write),
-    // .saturate_flag(),
+    .saturate_flag(1'b0),
     .preserve_vl(preserve_vl),
     .set_vl_max(set_vl_max)
 );
@@ -95,11 +95,11 @@ vector_decoder vdec0 (
     .vec_reg_write(vec_reg_write),
     .vd_data_src(vd_data_src),
     .pe_op(pe_op),
-    .saturation_mode(saturation_mode),
+    .saturate_mode(saturate_mode),
     .output_mode(output_mode),
     .operand_select(operand_select),
     .pe_mul_us(pe_mul_us),
-    .pe_widening(pe_widening),
+    .widening(widening),
     .apu_result_select(apu_result_select),
     .clk(clk),
     .n_reset(n_reset),
@@ -130,10 +130,13 @@ always_comb
     endcase
 
 vector_registers vreg0 (
+    .vs1_data(vs1_data),
+    .vs2_data(vs2_data),
+    .vs3_data(vs3_data),
+    .vd_data(vd_data),
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
-    .vs3_data(vs3_data),
-    .vd_data(replicated_scalar), // Presumably this will need some muxing
+    .vd_addr(vd_addr),
     .vsew(vsew),
     .elements_to_write(elements_to_write),
     .clk(clk),
@@ -145,7 +148,7 @@ vector_registers vreg0 (
 ////////////////////////////////////////
 // PEs CONTAINED IN ARITHMETIC STAGE WRAPPER
 arith_stage arith_stage0 (
-    .arith_outputput(arith_output),
+    .arith_output(arith_output),
     .replicated_scalar(replicated_scalar),
     .clk(clk),
     .n_reset(n_reset),
@@ -153,16 +156,17 @@ arith_stage arith_stage0 (
     .vs2_data(vs2_data),
     .vs3_data(vs3_data),
     .scalar_operand(scalar_operand1),
-    .imm_operand(immediate_operand),
+    .imm_operand(immediate_operand[4:0]),
     .elements_to_write(elements_to_write),
     .cycle_count(cycle_count),
     .op(pe_op),
-    .saturation_mode(saturation_mode),
+    .saturate_mode(saturate_mode),
     .output_mode(output_mode),
     .operand_select(operand_select),
     .widening(widening),
     .mul_us(pe_mul_us),
-    .vl(vl)
+    .vl(vl),
+    .vsew(vsew)
 );
 
 ////////////////////////////////////////////////////////////////////////////////

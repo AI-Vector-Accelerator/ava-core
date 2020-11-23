@@ -9,7 +9,7 @@ module vector_csrs (
     input wire clk,
     input wire n_reset,
     input wire [31:0] avl_in,
-    input wire [6:0] vtype_in,
+    input wire [4:0] vtype_in,
     input wire write,
     input wire saturate_flag,
     input wire preserve_vl,

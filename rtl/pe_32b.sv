@@ -5,7 +5,7 @@
 // `include "defs.sv"
 import accelerator_pkg::*;
 
-module pe_32 (
+module pe_32b (
     output logic [31:0] out,
     // output logic flag_saturated // TODO: add this flag for CSRs
     input wire [31:0] a,
@@ -15,7 +15,7 @@ module pe_32 (
     input wire [1:0] vsew,
     input wire [1:0] widening, // 2'd1 for widening, 2'd2 for quad widening
     input wire [1:0] mul_us, // Specifies each multiplier input as signed or unsigned
-    input pe_saturation_mode_t saturate_mode,
+    input pe_saturate_mode_t saturate_mode,
     input pe_output_mode_t output_mode
 );
 
@@ -50,6 +50,7 @@ vw_sign_ext se0 (
     .a(a),
     .b(b),
     .c(c),
+    .widening(widening),
     .vsew(vsew)
 );
 
@@ -185,7 +186,7 @@ sat_unit #(
 wire [15:0] sat16_result;
 sat_unit #(
     .W_IN(33),
-    .W_out(16)
+    .W_OUT(16)
 ) sat16
 (
     .a_in(arith_result),

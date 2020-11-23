@@ -17,12 +17,13 @@ module arith_stage (
     input wire [1:0] elements_to_write,
     input wire [1:0] cycle_count,
     input pe_arith_op_t op,
-    input pe_saturation_mode_t saturation_mode,
+    input pe_saturate_mode_t saturate_mode,
     input pe_output_mode_t output_mode,
     input pe_operand_t operand_select,
     input wire [1:0] widening,
     input wire [1:0] mul_us,
-    input wire [2:0] vl
+    input wire [4:0] vl,
+    input wire [1:0] vsew
 );
 
 logic [31:0] reduction_intermediate_reg;
@@ -39,6 +40,8 @@ logic [31:0] pe1_b_data;
 logic [31:0] pe2_b_data;
 logic [31:0] pe3_b_data;
 
+logic [31:0] scalar_to_replicate;
+
 pe_32b pe0 (
     .out(pe0_out),
     .a(vs2_data[31:0]),
@@ -46,7 +49,7 @@ pe_32b pe0 (
     .c(vs3_data[31:0]),
     .op(op),
     .vsew(vsew),
-    .widening(pwidening),
+    .widening(widening),
     .mul_us(mul_us),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode)
@@ -93,7 +96,7 @@ pe_32b pe3 (
 
 scalar_replicate scalar_rep0 (
     .replicated_out(replicated_scalar),
-    .scalar_in(scalar_operand),
+    .scalar_in(scalar_to_replicate),
     .vsew(vsew)
 );
 
@@ -108,6 +111,9 @@ always_ff @(posedge clk, negedge n_reset)
 // PE INPUT OPERAND SELECTION
 ////////////////////////////////////////////////////////////////////////////////
 always_comb
+begin
+    scalar_to_replicate = scalar_operand;
+
     case (operand_select)
         PE_OPERAND_VS1:
         begin
@@ -129,6 +135,11 @@ always_comb
             pe1_b_data = {'0, imm_operand[4:0]};
             pe2_b_data = {'0, imm_operand[4:0]};
             pe3_b_data = {'0, imm_operand[4:0]};
+
+            // This line handles a special case - the scalar replicate logic is
+            // used for vmv.v.i instructions but the PE is not used. In this
+            // case the immediate operand needs to be replicated and returned.
+            scalar_to_replicate = imm_operand;
         end
         PE_OPERAND_RIPPLE:
         begin
@@ -143,6 +154,7 @@ always_comb
             pe3_b_data = pe2_out;
         end
     endcase
+end
 
 ////////////////////////////////////////////////////////////////////////////////
 // PE OUTPUT SELECTION
