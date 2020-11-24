@@ -1,0 +1,15 @@
+// Manifest for the NVPE RTL model - Intended to be used by verilator
+// TODO: Relative paths based on environment variable
+./accelerator_pkg.sv
+./accelerator_top.sv
+./arith_stage.sv
+./bit_ext.sv
+./pe_32b.sv
+./processing_element.sv
+./relu_bound.sv
+./sat_unit.sv
+./scalar_replicate.sv
+./vector_csrs.sv
+./vector_decoder.sv
+./vector_registers.sv
+./vw_sign_ext.sv
