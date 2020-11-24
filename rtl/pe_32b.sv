@@ -61,7 +61,7 @@ always_comb
 begin
     subtract = 1'b0;
     macc = 1'b0;
-    arith_result = 1'b0;
+    arith_result = '0;
 
     case (op)
         // 4'h0: // Add
@@ -160,12 +160,12 @@ begin
             2'd1: // 16b
                 selected_mult_out = {{16{1'b0}}, mult_wide[16:0]};
             2'd2: // 32b
-                selected_mult_out = mult_wide[33:0];
+                selected_mult_out = mult_wide[32:0];
             default:
-                selected_mult_out = mult_wide[33:0];
+                selected_mult_out = mult_wide[32:0];
         endcase
     else
-        selected_mult_out = mult_wide[33:0];
+        selected_mult_out = mult_wide[32:0];
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +209,7 @@ begin
     if (widening[0])
         case (vsew)
             2'd0: // 8b -> 16b
-                sat_result = sat16_result;
+                sat_result = {'0, sat16_result};
             2'd1: // 16b -> 32b
                 sat_result = sat32_result;
         endcase
@@ -220,9 +220,9 @@ begin
     else
         case (vsew)
             2'd0: // 8b
-                sat_result = sat8_result;
+                sat_result = {'0, sat8_result};
             2'd1: // 16b
-                sat_result = sat16_result;
+                sat_result = {'0, sat16_result};
             2'd2: // 32b
                 sat_result = sat32_result;
         endcase
@@ -233,11 +233,11 @@ end
 ////////////////////////////////////////////////////////////////////////////////
 always_comb
 begin
-    out = arith_result;
+    out = arith_result[31:0];
     case (output_mode)
         PE_OP_MODE_RESULT:
             if (saturate_mode == PE_SAT_NONE)
-                out = arith_result;
+                out = arith_result[31:0];
             else
                 out = sat_result;
         PE_OP_MODE_PASS_MAX:

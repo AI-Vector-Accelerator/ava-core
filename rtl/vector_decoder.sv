@@ -6,7 +6,7 @@ module vector_decoder (
     output logic apu_gnt,
     output logic [31:0] scalar_operand1,
     output logic [31:0] scalar_operand2,
-    output logic [11:0] immediate_operand,
+    output logic [10:0] immediate_operand,
     output logic [4:0] vs1_addr,
     output logic [4:0] vs2_addr,
     output logic [4:0] vd_addr,
@@ -132,7 +132,7 @@ always_comb
 begin
     if (multi_cycle_instr)
         // Elements can be handled 4 at a time so divide VL by 4
-        max_cycle_count = vl[4:2];
+        max_cycle_count = vl[3:2];
     else
     // Force single-cycle instruction
         max_cycle_count = '0;

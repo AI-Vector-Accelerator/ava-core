@@ -119,14 +119,14 @@ begin
         begin
             pe0_b_data = vs1_data[31:0];
             pe1_b_data = vs1_data[63:32];
-            pe2_b_data = vs1_data[95:54];
+            pe2_b_data = vs1_data[95:64];
             pe3_b_data = vs1_data[127:96];
         end
         PE_OPERAND_SCALAR:
         begin
             pe0_b_data = replicated_scalar[31:0];
             pe1_b_data = replicated_scalar[63:32];
-            pe2_b_data = replicated_scalar[95:54];
+            pe2_b_data = replicated_scalar[95:64];
             pe3_b_data = replicated_scalar[127:96];
         end
         PE_OPERAND_IMMEDIATE:
@@ -139,7 +139,7 @@ begin
             // This line handles a special case - the scalar replicate logic is
             // used for vmv.v.i instructions but the PE is not used. In this
             // case the immediate operand needs to be replicated and returned.
-            scalar_to_replicate = imm_operand;
+            scalar_to_replicate = {'0, imm_operand};
         end
         PE_OPERAND_RIPPLE:
         begin

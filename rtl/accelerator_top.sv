@@ -26,7 +26,7 @@ wire [1:0] vlmul;
 // DECODER OUTPUTS
 wire [31:0] scalar_operand1;
 wire [31:0] scalar_operand2;
-wire [11:0] immediate_operand;
+wire [10:0] immediate_operand;
 wire [4:0] vs1_addr;
 wire [4:0] vs2_addr;
 wire [4:0] vd_addr;
