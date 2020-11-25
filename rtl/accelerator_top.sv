@@ -9,7 +9,7 @@ module accelerator_top (
     input wire clk,
     input wire n_reset,
     input wire apu_req,
-    input wire [31:0] apu_operands [2:0],
+    input wire [2:0][31:0] apu_operands_i,
     input wire [5:0] apu_op,
     input wire [14:0] apu_flags_i
 );
@@ -59,6 +59,11 @@ wire [127:0] replicated_scalar;
 ////////////////////////////////////////////////////////////////////////////////
 // MODULE INSTANTIATION
 ////////////////////////////////////////////////////////////////////////////////
+
+wire [31:0] apu_operands [2:0];
+assign apu_operands[0] = apu_operands_i[0];
+assign apu_operands[1] = apu_operands_i[1];
+assign apu_operands[2] = apu_operands_i[2];
 
 ////////////////////////////////////////
 // CSRs
