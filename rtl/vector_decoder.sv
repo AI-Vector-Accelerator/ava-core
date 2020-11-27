@@ -30,7 +30,12 @@ module vector_decoder (
     input wire [31:0] apu_operands [2:0],
     input wire [5:0] apu_op,
     input wire [14:0] apu_flags_i,
-    input wire [4:0] vl
+    input wire [4:0] vl,
+    output wire vlsu_en,
+    output wire vlsu_load,
+    output wire vlsu_store,
+    output wire vlsu_strided,
+    input wire vlsu_ready
 );
 
 enum logic {WAIT, EXEC} state, next_state;
@@ -190,6 +195,10 @@ begin
     widening = 2'b00;
     apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
+    vlsu_en = 1'b0;
+    vlsu_load = 1'b0;
+    vlsu_store = 1'b0;
+    vlsu_strided = 1'b0;
 
     // Used to control decoder module itself
     fix_vd_addr = 1'b0;
@@ -199,7 +208,12 @@ begin
     begin
         if (major_opcode == V_MAJOR_LOAD_FP)
         begin
-            $error("Unimplemented LOAD_FP instruction");
+            if(funct3 == 3'b111) begin
+                vlsu_en = 1'b1;
+                vlsu_load = 1'b1;
+                vec_reg_write = 1'b1;
+                multi_cycle_instr = 1'b1; // TODO: IF VLEN > 1
+            end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
         begin
