@@ -287,6 +287,11 @@ begin
                             fix_vd_addr = 1'b1;
                             operand_select = PE_OPERAND_RIPPLE;
                         end
+                        // Supports vmax.vv and vmax.vx
+                        else if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == V_OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;                        // Supports vmax.vv and vmax.vx
                     end
 
                     // vand
