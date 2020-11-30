@@ -38,7 +38,7 @@ module vector_decoder (
     input logic vlsu_ready_i
 );
 
-enum logic {WAIT, EXEC} state, next_state;
+enum {WAIT, EXEC, VALID} state, next_state;
 
 logic [1:0] max_cycle_count;
 // logic [1:0] cycle_count;
@@ -111,9 +111,13 @@ begin
         begin
             if (cycle_count == max_cycle_count)
             begin
-                next_state = WAIT;
-                apu_rvalid = 1'b1;
+                next_state = VALID;
             end
+        end
+        VALID:
+        begin
+            next_state = WAIT;
+            apu_rvalid = 1'b1;
         end
     endcase
 end
@@ -218,7 +222,7 @@ begin
                 vd_data_src = VREG_WB_SRC_MEMORY;
                 multi_cycle_instr = 1'b1;
                 fix_vd_addr = 1'b1;
-                if(apu_rvalid) vec_reg_write = 1'b1;
+                vec_reg_write = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
