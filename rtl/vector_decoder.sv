@@ -31,11 +31,11 @@ module vector_decoder (
     input wire [5:0] apu_op,
     input wire [14:0] apu_flags_i,
     input wire [4:0] vl,
-    output wire vlsu_en,
-    output wire vlsu_load,
-    output wire vlsu_store,
-    output wire vlsu_strided,
-    input wire vlsu_ready
+    output logic vlsu_en_o,
+    output logic vlsu_load_o,
+    output logic vlsu_store_o,
+    output logic vlsu_strided_o,
+    input logic vlsu_ready_i
 );
 
 enum logic {WAIT, EXEC} state, next_state;
@@ -137,7 +137,11 @@ always_comb
 begin
     if (multi_cycle_instr)
         // Elements can be handled 4 at a time so divide VL by 4
-        max_cycle_count = vl[3:2];
+        if(vlsu_load_o)
+            max_cycle_count = 2'd2;
+        else 
+            max_cycle_count = vl[3:2];
+
     else
     // Force single-cycle instruction
         max_cycle_count = '0;
@@ -195,10 +199,10 @@ begin
     widening = 2'b00;
     apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
-    vlsu_en = 1'b0;
-    vlsu_load = 1'b0;
-    vlsu_store = 1'b0;
-    vlsu_strided = 1'b0;
+    vlsu_en_o = 1'b0;
+    vlsu_load_o = 1'b0;
+    vlsu_store_o = 1'b0;
+    vlsu_strided_o = 1'b0;
 
     // Used to control decoder module itself
     fix_vd_addr = 1'b0;
@@ -209,10 +213,12 @@ begin
         if (major_opcode == V_MAJOR_LOAD_FP)
         begin
             if(funct3 == 3'b111) begin
-                vlsu_en = 1'b1;
-                vlsu_load = 1'b1;
-                vec_reg_write = 1'b1;
-                multi_cycle_instr = 1'b1; // TODO: IF VLEN > 1
+                vlsu_en_o = 1'b1;
+                vlsu_load_o = 1'b1;
+                vd_data_src = VREG_WB_SRC_MEMORY;
+                multi_cycle_instr = 1'b1;
+                fix_vd_addr = 1'b1;
+                if(apu_rvalid) vec_reg_write = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)

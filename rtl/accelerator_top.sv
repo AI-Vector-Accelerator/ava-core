@@ -2,16 +2,24 @@
 import accelerator_pkg::*;
 
 module accelerator_top (
-    output logic [31:0] apu_result,
-    output logic [4:0] apu_flags_o,
-    output wire apu_gnt,
-    output wire apu_rvalid,
-    input wire clk,
-    input wire n_reset,
-    input wire apu_req,
-    input wire [2:0][31:0] apu_operands_i,
-    input wire [5:0] apu_op,
-    input wire [14:0] apu_flags_i
+    output logic  [31:0] apu_result,
+    output logic  [4:0]  apu_flags_o,
+    output logic         apu_gnt,
+    output logic         apu_rvalid,
+    input  wire         clk,
+    input  wire         n_reset,
+    input  wire         apu_req,
+    input  wire  [2:0][31:0] apu_operands_i,
+    input  wire  [5:0]  apu_op,
+    input  wire  [14:0] apu_flags_i,
+    output wire         data_req_o,
+    input  wire         data_gnt_i,
+    input  wire         data_rvalid_i,
+    output wire         data_we_o,
+    output wire  [3:0]  data_be_o,
+    output wire  [31:0] data_addr_o,
+    output wire  [31:0] data_wdata_o,
+    input  wire  [31:0] data_rdata_i
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,8 +52,14 @@ pe_operand_t operand_select;
 wire [1:0] pe_mul_us;
 wire [1:0] widening;
 apu_result_src_t apu_result_select;
+wire vlsu_en;
+wire vlsu_load;
+wire vlsu_store;
+wire vlsu_strided;
+wire vlsu_ready;
 
 // VLSU OUTPUTS
+wire [127:0] vlsu_wdata;
 
 // VECTOR REGISTERS OUTPUTS
 wire [127:0] vs1_data;
@@ -112,11 +126,46 @@ vector_decoder vdec0 (
     .apu_operands(apu_operands),
     .apu_op(apu_op),
     .apu_flags_i(apu_flags_i),
-    .vl(vl)
+    .vl(vl),
+    .vlsu_en_o(vlsu_en),
+    .vlsu_load_o(vlsu_load),
+    .vlsu_store_o(vlsu_store),
+    .vlsu_strided_o(vlsu_strided),
+    .vlsu_ready_i(vlsu_ready)
 );
 
 ////////////////////////////////////////
 // VLSU
+vector_lsu vlsu0 (
+    .clk(clk),
+    .n_reset(n_reset),
+
+    .vl_i(vl),
+    .vsew_i(vsew),
+    .vlmul_i(vlmul),
+
+    .vlsu_en_i(vlsu_en),
+    .vlsu_load_i(vlsu_load),
+    .vlsu_store_i(vlsu_store),
+    .vlsu_strided_i(vlsu_strided),
+    .vlsu_ready_o(vlsu_ready),
+
+    .data_req_o(data_req_o),
+    .data_gnt_i(data_gnt_i),
+    .data_rvalid_i(data_rvalid_i),
+    .data_addr_o(data_addr_o),
+    .data_we_o(data_we_o),
+    .data_be_o(data_be_o),
+    .data_rdata_i(data_rdata_i),
+    .data_wdata_o(data_wdata_o),
+
+    .op0_data_i(apu_operands[1]),
+    .op1_data_i(apu_operands[2]),
+
+    .vs_wdata_o(vlsu_wdata),
+    .vs_rdata_i(vs1_data),
+    .vr_addr_i(vd_addr)
+);
 
 ////////////////////////////////////////
 // VECTOR REGISTERS
@@ -125,9 +174,8 @@ always_comb
     case (vd_data_src)
         VREG_WB_SRC_ARITH:
             vd_data = arith_output;
-        // Leave this for now until we know where RAM data will come from
-        // VREG_WB_SRC_MEMORY:
-        //     vd_data =
+        VREG_WB_SRC_MEMORY:
+            vd_data = vlsu_wdata;
         VREG_WB_SRC_SCALAR:
             vd_data = replicated_scalar;
         default:
