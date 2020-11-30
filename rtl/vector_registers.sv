@@ -82,7 +82,7 @@ always_ff @(posedge clk, negedge n_reset)
     else
     begin
         // Don't want to write to v0 (reserved for vector mask)
-        if (write && vd_addr)
+        if (write & (vd_addr != '0))
         begin
             if (wr_en0[0])
                 vregs[vd_addr0][7:0] <= vd_wr_data0[7:0];
