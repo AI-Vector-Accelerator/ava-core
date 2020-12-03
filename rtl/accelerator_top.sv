@@ -52,11 +52,6 @@ pe_operand_t operand_select;
 wire [1:0] pe_mul_us;
 wire [1:0] widening;
 apu_result_src_t apu_result_select;
-wire vlsu_en;
-wire vlsu_load;
-wire vlsu_store;
-wire vlsu_strided;
-wire vlsu_ready;
 
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
@@ -126,45 +121,7 @@ vector_decoder vdec0 (
     .apu_operands(apu_operands),
     .apu_op(apu_op),
     .apu_flags_i(apu_flags_i),
-    .vl(vl),
-    .vlsu_en_o(vlsu_en),
-    .vlsu_load_o(vlsu_load),
-    .vlsu_store_o(vlsu_store),
-    .vlsu_strided_o(vlsu_strided),
-    .vlsu_ready_i(vlsu_ready)
-);
-
-////////////////////////////////////////
-// VLSU
-vector_lsu vlsu0 (
-    .clk(clk),
-    .n_reset(n_reset),
-
-    .vl_i(vl),
-    .vsew_i(vsew),
-    .vlmul_i(vlmul),
-
-    .vlsu_en_i(vlsu_en),
-    .vlsu_load_i(vlsu_load),
-    .vlsu_store_i(vlsu_store),
-    .vlsu_strided_i(vlsu_strided),
-    .vlsu_ready_o(vlsu_ready),
-
-    .data_req_o(data_req_o),
-    .data_gnt_i(data_gnt_i),
-    .data_rvalid_i(data_rvalid_i),
-    .data_addr_o(data_addr_o),
-    .data_we_o(data_we_o),
-    .data_be_o(data_be_o),
-    .data_rdata_i(data_rdata_i),
-    .data_wdata_o(data_wdata_o),
-
-    .op0_data_i(apu_operands[1]),
-    .op1_data_i(apu_operands[2]),
-
-    .vs_wdata_o(vlsu_wdata),
-    .vs_rdata_i(vs1_data),
-    .vr_addr_i(vd_addr)
+    .vl(vl)
 );
 
 ////////////////////////////////////////
@@ -172,10 +129,10 @@ vector_lsu vlsu0 (
 logic [127:0] vd_data;
 always_comb
     case (vd_data_src)
+        VREG_WB_SRC_MEMORY:
+            vd_data = apu_operands[0] << 8'(vd_addr[1:0] * 6'd32);
         VREG_WB_SRC_ARITH:
             vd_data = arith_output;
-        VREG_WB_SRC_MEMORY:
-            vd_data = vlsu_wdata;
         VREG_WB_SRC_SCALAR:
             vd_data = replicated_scalar;
         default:

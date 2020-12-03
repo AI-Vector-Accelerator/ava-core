@@ -30,12 +30,7 @@ module vector_decoder (
     input wire [31:0] apu_operands [2:0],
     input wire [5:0] apu_op,
     input wire [14:0] apu_flags_i,
-    input wire [4:0] vl,
-    output logic vlsu_en_o,
-    output logic vlsu_load_o,
-    output logic vlsu_store_o,
-    output logic vlsu_strided_o,
-    input logic vlsu_ready_i
+    input wire [4:0] vl
 );
 
 enum {WAIT, EXEC, VALID} state, next_state;
@@ -57,15 +52,15 @@ logic [5:0] funct6;
 logic [4:0] source1;
 logic [4:0] source2;
 logic [4:0] destination;
-assign funct3 = reg_apu_operands[0][14:12];
-assign major_opcode = reg_apu_operands[0][6:0];
-assign funct6 = reg_apu_operands[0][31:26];
-assign source1 = reg_apu_operands[0][19:15];
-assign source2 = reg_apu_operands[0][24:20];
-assign destination = reg_apu_operands[0][11:7];
+assign funct3 = reg_apu_operands[2][14:12];
+assign major_opcode = reg_apu_operands[2][6:0];
+assign funct6 = reg_apu_operands[2][31:26];
+assign source1 = reg_apu_operands[2][19:15];
+assign source2 = reg_apu_operands[2][24:20];
+assign destination = reg_apu_operands[2][11:7];
 
-assign scalar_operand1 = reg_apu_operands[1];
-assign scalar_operand2 = reg_apu_operands[2];
+assign scalar_operand1 = reg_apu_operands[0];
+assign scalar_operand2 = reg_apu_operands[1];
 
 always_ff @(posedge clk, negedge n_reset)
     if(~n_reset)
@@ -116,8 +111,8 @@ begin
         end
         VALID:
         begin
-            next_state = WAIT;
             apu_rvalid = 1'b1;
+            next_state = WAIT;
         end
     endcase
 end
@@ -141,10 +136,7 @@ always_comb
 begin
     if (multi_cycle_instr)
         // Elements can be handled 4 at a time so divide VL by 4
-        if(vlsu_load_o)
-            max_cycle_count = 2'd2;
-        else 
-            max_cycle_count = vl[3:2];
+        max_cycle_count = vl[3:2];
 
     else
     // Force single-cycle instruction
@@ -164,9 +156,9 @@ begin
     end
 
     if (funct3 == V_OPCFG)
-        immediate_operand = reg_apu_operands[0][30:20];
+        immediate_operand = reg_apu_operands[2][30:20];
     else
-        immediate_operand = {'0, reg_apu_operands[0][19:15]};
+        immediate_operand = {'0, reg_apu_operands[2][19:15]};
 end
 
 always_comb
@@ -203,10 +195,6 @@ begin
     widening = 2'b00;
     apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
-    vlsu_en_o = 1'b0;
-    vlsu_load_o = 1'b0;
-    vlsu_store_o = 1'b0;
-    vlsu_strided_o = 1'b0;
 
     // Used to control decoder module itself
     fix_vd_addr = 1'b0;
@@ -217,12 +205,10 @@ begin
         if (major_opcode == V_MAJOR_LOAD_FP)
         begin
             if(funct3 == 3'b111) begin
-                vlsu_en_o = 1'b1;
-                vlsu_load_o = 1'b1;
                 vd_data_src = VREG_WB_SRC_MEMORY;
-                multi_cycle_instr = 1'b1;
                 fix_vd_addr = 1'b1;
                 vec_reg_write = 1'b1;
+                multi_cycle_instr = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
@@ -236,6 +222,7 @@ begin
             begin
                 csr_write = 1'b1;
                 apu_result_select = APU_RESULT_SRC_VL;
+                multi_cycle_instr = 1'b1;
                 if (source1 == '0)
                 begin
                     if (destination == '0)
