@@ -77,7 +77,7 @@ assign vl = csrs[2][4:0];
 
 // How many elements fit into a single register for each value of VSEW?
 // Can work this out by dividing vlenb by vsew
-assign per_reg = csrs[4][2:0] >> vsew;
+assign per_reg = csrs[4][2:0] >> vtype_in[4:2];
 
 // Max VL value equals the max number of elements per register * LMUL. LMUL is
 // in powers of 2 so can use a shift
