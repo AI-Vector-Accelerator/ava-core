@@ -236,10 +236,10 @@ begin
         begin
             // Need to consider all write ports
             // wr_en0 always enabled, otherwise would be writing no elements
+            wr_en0 = 4'b1111;
             case (elements_to_write)
                 2'd0: // Write all elements
                 begin
-                    wr_en0 = 4'b1111;
                     wr_en1 = 4'b1111;
                     wr_en2 = 4'b1111;
                     wr_en3 = 4'b1111;

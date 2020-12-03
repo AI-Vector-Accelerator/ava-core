@@ -30,7 +30,8 @@ module vector_decoder (
     input wire [31:0] apu_operands [2:0],
     input wire [5:0] apu_op,
     input wire [14:0] apu_flags_i,
-    input wire [4:0] vl
+    input wire [4:0] vl,
+    input wire [1:0] vsew
 );
 
 enum {WAIT, EXEC, VALID} state, next_state;
@@ -132,11 +133,16 @@ always_ff @(posedge clk, negedge n_reset)
     end
 
 
+logic [3:0] vl_zero_indexed;
+
 always_comb
 begin
+    // Subtract 1 because if VL=4/8/16 it will want another cycle otherwise
+    // There must be a better way than just subtracting here though
+    vl_zero_indexed = vl - 1'b1;
     if (multi_cycle_instr)
         // Elements can be handled 4 at a time so divide VL by 4
-        max_cycle_count = vl[3:2];
+        max_cycle_count = vl_zero_indexed[3:2];
 
     else
     // Force single-cycle instruction
@@ -150,9 +156,26 @@ begin
     end
     else
     begin
-        vs1_addr = source1 + cycle_count;
-        vs2_addr = source2 + cycle_count;
-        vd_addr = destination + cycle_count;
+        case (vsew)
+            2'd0: // 8b
+            begin
+                vs1_addr = source1 + cycle_count;
+                vs2_addr = source2 + cycle_count;
+                vd_addr = destination + cycle_count;
+            end
+            2'd1: // 16b
+            begin
+                vs1_addr = source1 + {cycle_count, 1'b0};
+                vs2_addr = source2 + {cycle_count, 1'b0};
+                vd_addr = destination + {cycle_count, 1'b0};
+            end
+            default:
+            begin
+                vs1_addr = source1 + cycle_count;
+                vs2_addr = source2 + cycle_count;
+                vd_addr = destination + cycle_count;
+            end
+        endcase
     end
 
     if (funct3 == V_OPCFG)
@@ -222,7 +245,6 @@ begin
             begin
                 csr_write = 1'b1;
                 apu_result_select = APU_RESULT_SRC_VL;
-                multi_cycle_instr = 1'b1;
                 if (source1 == '0)
                 begin
                     if (destination == '0)
@@ -288,7 +310,7 @@ begin
                         else if (funct3 == V_OPIVV)
                             operand_select = PE_OPERAND_VS1;
                         else if (funct3 == V_OPIVX)
-                            operand_select = PE_OPERAND_SCALAR;                        // Supports vmax.vv and vmax.vx
+                            operand_select = PE_OPERAND_SCALAR;
                     end
 
                     // vand

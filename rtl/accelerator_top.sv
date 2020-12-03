@@ -121,7 +121,8 @@ vector_decoder vdec0 (
     .apu_operands(apu_operands),
     .apu_op(apu_op),
     .apu_flags_i(apu_flags_i),
-    .vl(vl)
+    .vl(vl),
+    .vsew(vsew)
 );
 
 ////////////////////////////////////////
@@ -182,25 +183,30 @@ arith_stage arith_stage0 (
 ////////////////////////////////////////////////////////////////////////////////
 // RESULT SELECTION - what value to return to CPU
 ////////////////////////////////////////////////////////////////////////////////
-always_comb
-begin
-    apu_result = '0;
-    apu_flags_o = '0;
+logic [31:0] reg_apu_result;
+assign apu_flags_o = '0;
+assign apu_result = reg_apu_result;
 
-    case (apu_result_select)
-        APU_RESULT_SRC_VL:
-            apu_result = {'0, vl};
-        APU_RESULT_SRC_VS2_0:
-            case (vsew)
-                2'd0: // 8b
-                    apu_result = { {24{1'b0}}, vs2_data[7:0] };
-                2'd1: // 16b
-                    apu_result = { {16{1'b0}}, vs2_data[15:0] };
-                2'd2:// 32b
-                    apu_result = vs2_data[31:0];
-            endcase
-    endcase
-end
+always_ff @(posedge clk, negedge n_reset)
+    if (~n_reset)
+        reg_apu_result <= '0;
+    else
+    begin
+        case (apu_result_select)
+            APU_RESULT_SRC_VL:
+                reg_apu_result <= {'0, vl};
+            APU_RESULT_SRC_VS2_0:
+                case (vsew)
+                    2'd0: // 8b
+                        reg_apu_result <= { {24{1'b0}}, vs2_data[7:0] };
+                    2'd1: // 16b
+                        reg_apu_result <= { {16{1'b0}}, vs2_data[15:0] };
+                    2'd2:// 32b
+                        reg_apu_result <= vs2_data[31:0];
+                endcase
+        endcase
+    end
+
 
 
 endmodule
