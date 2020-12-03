@@ -107,12 +107,12 @@ begin
         begin
             if (cycle_count == max_cycle_count)
             begin
-                next_state = VALID;
+                apu_rvalid = 1'b1;
+                next_state = WAIT;
             end
         end
         VALID:
         begin
-            apu_rvalid = 1'b1;
             next_state = WAIT;
         end
     endcase
@@ -231,7 +231,7 @@ begin
                 vd_data_src = VREG_WB_SRC_MEMORY;
                 fix_vd_addr = 1'b1;
                 vec_reg_write = 1'b1;
-                multi_cycle_instr = 1'b1;
+                //multi_cycle_instr = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
