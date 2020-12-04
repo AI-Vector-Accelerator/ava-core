@@ -56,6 +56,8 @@ apu_result_src_t apu_result_select;
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
 
+logic [4:0] vl_next_comb;
+
 // VECTOR REGISTERS OUTPUTS
 wire [127:0] vs1_data;
 wire [127:0] vs2_data;
@@ -80,6 +82,7 @@ vector_csrs vcsrs0 (
     .vl(vl),
     .vsew(vsew),
     .vlmul(vlmul),
+    .vl_next_comb(vl_next_comb),
     .clk(clk),
     .n_reset(n_reset),
     .avl_in(scalar_operand1),
@@ -187,7 +190,7 @@ logic [31:0] reg_apu_result;
 assign apu_flags_o = '0;
 assign apu_result = reg_apu_result;
 
-always_ff @(posedge clk, negedge n_reset)
+/*always_ff @(posedge clk, negedge n_reset)
     if (~n_reset)
         reg_apu_result <= '0;
     else
@@ -205,8 +208,25 @@ always_ff @(posedge clk, negedge n_reset)
                         reg_apu_result <= vs2_data[31:0];
                 endcase
         endcase
-    end
+    end*/
 
+// Updated VL is arriving two cycles too late
+
+always_comb begin
+    case (apu_result_select)
+        APU_RESULT_SRC_VL:
+            reg_apu_result = {'0, vl_next_comb};
+        APU_RESULT_SRC_VS2_0:
+            case (vsew)
+                2'd0: // 8b
+                    reg_apu_result = { {24{1'b0}}, vs2_data[7:0] };
+                2'd1: // 16b
+                    reg_apu_result = { {16{1'b0}}, vs2_data[15:0] };
+                2'd2:// 32b
+                    reg_apu_result = vs2_data[31:0];
+            endcase
+    endcase
+end
 
 
 endmodule

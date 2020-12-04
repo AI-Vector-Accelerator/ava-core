@@ -6,6 +6,7 @@ module vector_csrs (
     output logic [4:0] vl,
     output logic [1:0] vsew,
     output logic [1:0] vlmul,
+    output logic [4:0] vl_next_comb,
     input wire clk,
     input wire n_reset,
     input wire [31:0] avl_in,
@@ -82,5 +83,7 @@ assign per_reg = csrs[4][2:0] >> vtype_in[4:2];
 // Max VL value equals the max number of elements per register * LMUL. LMUL is
 // in powers of 2 so can use a shift
 assign max_vl = per_reg << vtype_in[1:0];
+
+assign vl_next_comb = vl_next;
 
 endmodule
