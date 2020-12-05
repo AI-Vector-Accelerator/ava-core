@@ -110,7 +110,7 @@ begin
         end
         EXEC:
         begin
-            if ( vlsu_load_o ) begin
+            if ( vlsu_load_o | vlsu_store_o ) begin
                 if( vlsu_ready_i ) begin
                     apu_rvalid = 1'b1;
                     next_state = WAIT;
@@ -247,7 +247,11 @@ begin
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
         begin
-            $error("Unimplemented STORE_FP instruction");
+            if(funct3 == 3'b111) begin
+                fix_vd_addr = 1'b1;
+                vlsu_en_o = 1'b1;
+                vlsu_store_o = 1'b1;
+            end else $error("Unimplemented STORE_FP instruction");
         end
         else if (major_opcode == V_MAJOR_OP_V)
         begin

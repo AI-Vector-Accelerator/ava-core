@@ -217,7 +217,7 @@ vector_lsu vlsu0 (
     .op1_data_i(apu_operands[1]),
 
     .vs_wdata_o(vlsu_wdata),
-    .vs_rdata_i(vs1_data),
+    .vs_rdata_i(vs3_data),
     .vr_addr_i(vd_addr)
 );
 

@@ -14,17 +14,17 @@ module vector_lsu (
     input  wire         vlsu_load_i,
     input  wire         vlsu_store_i,
     input  wire         vlsu_strided_i,
-    output logic         vlsu_ready_o,
+    output logic        vlsu_ready_o,
 
     // OBI Memory Master
-    output logic         data_req_o,
-    input  logic         data_gnt_i,
-    input  logic         data_rvalid_i,
-    output logic [31:0]  data_addr_o,
-    output logic         data_we_o,
-    output logic [3:0]   data_be_o,
-    input  logic [31:0]  data_rdata_i,
-    output logic [31:0]  data_wdata_o,
+    output logic        data_req_o,
+    input  logic        data_gnt_i,
+    input  logic        data_rvalid_i,
+    output logic [31:0] data_addr_o,
+    output logic        data_we_o,
+    output logic [3:0]  data_be_o,
+    input  logic [31:0] data_rdata_i,
+    output logic [31:0] data_wdata_o,
 
     // Target Data
     input  wire [31:0]  op0_data_i, // Source (Load) / Destination (Store)
@@ -35,6 +35,8 @@ module vector_lsu (
     input  logic [127:0] vs_rdata_i,
     input  logic [4:0] vr_addr_i
 );
+
+logic [31:0] vs_rdata_sel;
 
 // Memory Master Controller
 typedef enum {IDLE, LOAD_REQ, STORE_REQ, LOAD_RVAL, STORE_RVAL} vlsu_obi_state;
@@ -55,15 +57,28 @@ always_comb begin
     data_wdata_o = 32'd0;
     vlsu_ready_o = 1'b0;
     vs_wdata_o = data_rdata_i << 8'(vr_addr_i[1:0] * 6'd32); // Shift data into correct position
+    
+    case(vr_addr_i[1:0])
+        2'd0 : vs_rdata_sel = vs_rdata_i[31:0];
+        2'd1 : vs_rdata_sel = vs_rdata_i[63:32];
+        2'd2 : vs_rdata_sel = vs_rdata_i[95:64];
+        2'd3 : vs_rdata_sel = vs_rdata_i[127:96];
+    endcase
+
     case(current_state)
         IDLE: begin
             if(vlsu_en_i & vlsu_load_i) begin
                 data_addr_o = op0_data_i;
                 data_req_o = 1'b1;
                 next_state = LOAD_REQ;
-            end else if(vlsu_en_i & vlsu_store_i)
+            end else if(vlsu_en_i & vlsu_store_i) begin
+                data_addr_o = op0_data_i;
+                data_wdata_o = vs_rdata_sel;
+                data_we_o = 1'b1;
+                data_req_o = 1'b1;
+                data_be_o = 4'hf;
                 next_state = STORE_REQ;
-            else 
+            end else 
                 next_state = IDLE;
         end
         LOAD_REQ: begin
@@ -74,14 +89,12 @@ always_comb begin
                 next_state = LOAD_REQ;
         end
         STORE_REQ: begin
-            next_state = IDLE;
-        end
-        LOAD_RVAL: begin
+            if(data_rvalid_i) begin
+                vlsu_ready_o = 1'b1;
+                next_state = IDLE;    
+            end else
+                next_state = STORE_REQ;
             
-            next_state = IDLE;
-        end
-        STORE_RVAL: begin
-            next_state = IDLE;
         end
     endcase    
 end
