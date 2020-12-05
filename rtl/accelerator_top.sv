@@ -125,7 +125,12 @@ vector_decoder vdec0 (
     .apu_op(apu_op),
     .apu_flags_i(apu_flags_i),
     .vl(vl),
-    .vsew(vsew)
+    .vsew(vsew),
+    .vlsu_en_o(vlsu_en),
+    .vlsu_load_o(vlsu_load),
+    .vlsu_store_o(vlsu_store),
+    .vlsu_strided_o(vlsu_strided),
+    .vlsu_ready_i(vlsu_ready)
 );
 
 ////////////////////////////////////////
@@ -134,7 +139,7 @@ logic [127:0] vd_data;
 always_comb
     case (vd_data_src)
         VREG_WB_SRC_MEMORY:
-            vd_data = apu_operands[0] << 8'(vd_addr[1:0] * 6'd32);
+            vd_data = vlsu_wdata;
         VREG_WB_SRC_ARITH:
             vd_data = arith_output;
         VREG_WB_SRC_SCALAR:
@@ -181,6 +186,39 @@ arith_stage arith_stage0 (
     .mul_us(pe_mul_us),
     .vl(vl),
     .vsew(vsew)
+);
+
+////////////////////////////////////////
+// VLSU
+vector_lsu vlsu0 (
+    .clk(clk),
+    .n_reset(n_reset),
+
+    .vl_i(vl),
+    .vsew_i(vsew),
+    .vlmul_i(vlmul),
+
+    .vlsu_en_i(vlsu_en),
+    .vlsu_load_i(vlsu_load),
+    .vlsu_store_i(vlsu_store),
+    .vlsu_strided_i(vlsu_strided),
+    .vlsu_ready_o(vlsu_ready),
+
+    .data_req_o(data_req_o),
+    .data_gnt_i(data_gnt_i),
+    .data_rvalid_i(data_rvalid_i),
+    .data_addr_o(data_addr_o),
+    .data_we_o(data_we_o),
+    .data_be_o(data_be_o),
+    .data_rdata_i(data_rdata_i),
+    .data_wdata_o(data_wdata_o),
+
+    .op0_data_i(apu_operands[0]),
+    .op1_data_i(apu_operands[1]),
+
+    .vs_wdata_o(vlsu_wdata),
+    .vs_rdata_i(vs1_data),
+    .vr_addr_i(vd_addr)
 );
 
 ////////////////////////////////////////////////////////////////////////////////
