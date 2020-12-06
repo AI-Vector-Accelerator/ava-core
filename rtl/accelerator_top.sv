@@ -55,6 +55,7 @@ apu_result_src_t apu_result_select;
 
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
+logic vec_reg_write_lsu;
 
 logic [4:0] vl_next_comb;
 
@@ -160,7 +161,7 @@ vector_registers vreg0 (
     .elements_to_write(elements_to_write),
     .clk(clk),
     .n_reset(n_reset),
-    .write(vec_reg_write),
+    .write(vec_reg_write | vec_reg_write_lsu ),
     .widening_op(widening[0])
 );
 
@@ -213,12 +214,15 @@ vector_lsu vlsu0 (
     .data_rdata_i(data_rdata_i),
     .data_wdata_o(data_wdata_o),
 
+    .cycle_count_i(cycle_count),
+
     .op0_data_i(apu_operands[0]),
     .op1_data_i(apu_operands[1]),
 
     .vs_wdata_o(vlsu_wdata),
     .vs_rdata_i(vs3_data),
-    .vr_addr_i(vd_addr)
+    .vr_addr_i(vd_addr),
+    .vr_we_o(vec_reg_write_lsu)
 );
 
 ////////////////////////////////////////////////////////////////////////////////

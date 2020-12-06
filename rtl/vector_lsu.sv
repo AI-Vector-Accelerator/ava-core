@@ -26,6 +26,8 @@ module vector_lsu (
     input  logic [31:0] data_rdata_i,
     output logic [31:0] data_wdata_o,
 
+    input  logic [1:0]  cycle_count_i,
+
     // Target Data
     input  wire [31:0]  op0_data_i, // Source (Load) / Destination (Store)
     input  wire [31:0]  op1_data_i, // Stride
@@ -33,10 +35,12 @@ module vector_lsu (
     // Wide vector register port
     output logic [127:0] vs_wdata_o,
     input  logic [127:0] vs_rdata_i,
-    input  logic [4:0] vr_addr_i
+    input  logic [4:0] vr_addr_i,
+    output logic vr_we_o
 );
 
 logic [31:0] vs_rdata_sel;
+logic [5:0] vsew_size;
 
 // Memory Master Controller
 typedef enum {IDLE, LOAD_REQ, STORE_REQ, LOAD_RVAL, STORE_RVAL} vlsu_obi_state;
@@ -56,6 +60,9 @@ always_comb begin
     data_be_o = 4'd0;
     data_wdata_o = 32'd0;
     vlsu_ready_o = 1'b0;
+    vr_we_o = 1'b0;
+
+    vsew_size = 6'd8 << (vsew_i);
     vs_wdata_o = data_rdata_i << 8'(vr_addr_i[1:0] * 6'd32); // Shift data into correct position
     
     case(vr_addr_i[1:0])
@@ -68,7 +75,7 @@ always_comb begin
     case(current_state)
         IDLE: begin
             if(vlsu_en_i & vlsu_load_i) begin
-                data_addr_o = op0_data_i;
+                data_addr_o = op0_data_i + (cycle_count_i * 'd4);
                 data_req_o = 1'b1;
                 next_state = LOAD_REQ;
             end else if(vlsu_en_i & vlsu_store_i) begin
@@ -83,6 +90,7 @@ always_comb begin
         end
         LOAD_REQ: begin
             if(data_rvalid_i) begin
+                vr_we_o = 1'b1;
                 vlsu_ready_o = 1'b1;
                 next_state = IDLE;
             end else

@@ -110,14 +110,16 @@ begin
         end
         EXEC:
         begin
-            if ( vlsu_load_o | vlsu_store_o ) begin
-                if( vlsu_ready_i ) begin
+            if (cycle_count == max_cycle_count) begin
+                if ( vlsu_load_o | vlsu_store_o ) begin
+                    if( vlsu_ready_i ) begin
+                        apu_rvalid = 1'b1;
+                        next_state = WAIT;
+                    end
+                end else begin
                     apu_rvalid = 1'b1;
                     next_state = WAIT;
                 end
-            end else if (cycle_count == max_cycle_count) begin
-                apu_rvalid = 1'b1;
-                next_state = WAIT;
             end
         end
     endcase
@@ -134,7 +136,10 @@ always_ff @(posedge clk, negedge n_reset)
         if (state == WAIT)
             cycle_count <= '0;
         else
-            cycle_count <= cycle_count + 1'b1;
+            if(vlsu_ready_i)
+                cycle_count <= cycle_count + 1'b1;
+            else
+                cycle_count <= cycle_count;
     end
 
 
@@ -145,13 +150,8 @@ begin
     // Subtract 1 because if VL=4/8/16 it will want another cycle otherwise
     // There must be a better way than just subtracting here though
     vl_zero_indexed = vl - 1'b1;
-    if (multi_cycle_instr)
-        // Elements can be handled 4 at a time so divide VL by 4
-        max_cycle_count = vl_zero_indexed[3:2];
-
-    else
-    // Force single-cycle instruction
-        max_cycle_count = '0;
+    // Elements can be handled 4 at a time so divide VL by 4, or force 0
+    max_cycle_count = multi_cycle_instr ? vl_zero_indexed[1:0] : 2'd0;
 
     if (fix_vd_addr)
     begin
@@ -239,10 +239,9 @@ begin
         begin
             if(funct3 == 3'b111) begin
                 vd_data_src = VREG_WB_SRC_MEMORY;
-                fix_vd_addr = 1'b1;
+                multi_cycle_instr = 1'b1;
                 vlsu_en_o = 1'b1;
                 vlsu_load_o = 1'b1;
-                vec_reg_write = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
