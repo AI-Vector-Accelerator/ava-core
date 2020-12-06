@@ -14,3 +14,4 @@ ${NVPE_RTL_DIR}/vector_decoder.sv
 ${NVPE_RTL_DIR}/vector_registers.sv
 ${NVPE_RTL_DIR}/vw_sign_ext.sv
 ${NVPE_RTL_DIR}/vector_lsu.sv
+${NVPE_RTL_DIR}/mapping_unit.sv

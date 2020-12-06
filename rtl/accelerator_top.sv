@@ -216,8 +216,8 @@ vector_lsu vlsu0 (
 
     .cycle_count_i(cycle_count),
 
-    .op0_data_i(apu_operands[0]),
-    .op1_data_i(apu_operands[1]),
+    .op0_data_i(scalar_operand1),
+    .op1_data_i(scalar_operand2),
 
     .vs_wdata_o(vlsu_wdata),
     .vs_rdata_i(vs3_data),

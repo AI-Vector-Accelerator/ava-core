@@ -122,6 +122,11 @@ begin
                 end
             end
         end
+        VALID:
+        begin
+            apu_rvalid = 1'b1;
+            next_state = WAIT;
+        end
     endcase
 end
 
@@ -148,8 +153,9 @@ logic [3:0] vl_zero_indexed;
 always_comb
 begin
     // Subtract 1 because if VL=4/8/16 it will want another cycle otherwise
-    // There must be a better way than just subtracting here though
-    vl_zero_indexed = vl - 1'b1;
+    // Number of loads dependant on SEW (For contiguous 8-bit values)
+    // TODO: Determine strided count
+    vl_zero_indexed = (vl - 1'b1) >> (2'd2 - vsew);
     // Elements can be handled 4 at a time so divide VL by 4, or force 0
     max_cycle_count = multi_cycle_instr ? vl_zero_indexed[1:0] : 2'd0;
 
@@ -172,7 +178,7 @@ begin
             begin
                 vs1_addr = source1 + {cycle_count, 1'b0};
                 vs2_addr = source2 + {cycle_count, 1'b0};
-                vd_addr = destination + {cycle_count, 1'b0};
+                vd_addr = destination + cycle_count;
             end
             default:
             begin

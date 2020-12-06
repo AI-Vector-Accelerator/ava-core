@@ -42,6 +42,13 @@ module vector_lsu (
 logic [31:0] vs_rdata_sel;
 logic [5:0] vsew_size;
 
+mapping_unit mu (
+    .arith_format_o(vs_wdata_o),
+    .memory_format_i(data_rdata_i),
+    .sew_i(vsew_i),
+    .reg_select(vr_addr_i[1:0])
+);
+
 // Memory Master Controller
 typedef enum {IDLE, LOAD_REQ, STORE_REQ, LOAD_RVAL, STORE_RVAL} vlsu_obi_state;
 vlsu_obi_state current_state, next_state;
@@ -63,7 +70,6 @@ always_comb begin
     vr_we_o = 1'b0;
 
     vsew_size = 6'd8 << (vsew_i);
-    vs_wdata_o = data_rdata_i << 8'(vr_addr_i[1:0] * 6'd32); // Shift data into correct position
     
     case(vr_addr_i[1:0])
         2'd0 : vs_rdata_sel = vs_rdata_i[31:0];
