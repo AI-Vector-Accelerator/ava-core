@@ -36,7 +36,8 @@ module vector_decoder (
     output logic vlsu_load_o,
     output logic vlsu_store_o,
     output logic vlsu_strided_o,
-    input logic vlsu_ready_i
+    input logic vlsu_ready_i,
+    output logic core_halt_o
 );
 
 enum {WAIT, EXEC, VALID} state, next_state;
@@ -95,11 +96,23 @@ always_ff @(posedge clk, negedge n_reset)
         end
     end
 
+logic core_halt_ctrl;
+
+assign core_halt_o = core_halt_ctrl;
+
+/*always_ff @(posedge clk, negedge n_reset) begin
+    if(~n_reset)
+        core_halt_o <= 1'b0;
+    else
+        core_halt_o <= core_halt_ctrl;
+end*/
+
 always_comb
 begin
     apu_rvalid = 1'b0;
     apu_gnt = 1'b0;
     next_state = state;
+    core_halt_ctrl = 1'b0;
 
     case (state)
         WAIT:
@@ -112,6 +125,7 @@ begin
         end
         EXEC:
         begin
+            core_halt_ctrl = 1'b1;
             if (cycle_count == max_cycle_count) begin
                 if (vlsu_load_o | vlsu_store_o) begin
                     if(vlsu_ready_i) begin
@@ -122,15 +136,7 @@ begin
                     apu_rvalid = 1'b1;
                     next_state = WAIT;
                 end
-            end else if (multi_cycle_instr == 0) begin
-                apu_rvalid = 1'b1;
-                next_state = WAIT;
             end
-        end
-        VALID:
-        begin
-            apu_rvalid = 1'b1;
-            next_state = WAIT;
         end
     endcase
 end
@@ -146,10 +152,11 @@ always_ff @(posedge clk, negedge n_reset)
         if (state == WAIT)
             cycle_count <= '0;
         else
-            if(vlsu_ready_i)
+            if((vlsu_load_o | vlsu_store_o) & vlsu_ready_i | ~(vlsu_load_o | vlsu_store_o))
                 cycle_count <= cycle_count + 1'b1;
             else
                 cycle_count <= cycle_count;
+                
     end
 
 
@@ -181,8 +188,8 @@ begin
             end
             2'd1: // 16b
             begin
-                vs1_addr = source1 + {cycle_count, 1'b0};
-                vs2_addr = source2 + {cycle_count, 1'b0};
+                vs1_addr = source1 + cycle_count; //{cycle_count, 1'b0};
+                vs2_addr = source2 + cycle_count; //{cycle_count, 1'b0};
                 vd_addr = destination + cycle_count;
             end
             default:
@@ -307,7 +314,7 @@ begin
                     begin
                         pe_op = PE_ARITH_SUB;
                         vec_reg_write = 1'b1;
-                        multi_cycle_instr = 1'b1;
+                        multi_cycle_instr = 1'b0;
                     end
 
                     // vmin

@@ -19,7 +19,8 @@ module accelerator_top (
     output wire  [3:0]  data_be_o,
     output wire  [31:0] data_addr_o,
     output wire  [31:0] data_wdata_o,
-    input  wire  [31:0] data_rdata_i
+    input  wire  [31:0] data_rdata_i,
+    output wire         core_halt_o
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +132,8 @@ vector_decoder vdec0 (
     .vlsu_load_o(vlsu_load),
     .vlsu_store_o(vlsu_store),
     .vlsu_strided_o(vlsu_strided),
-    .vlsu_ready_i(vlsu_ready)
+    .vlsu_ready_i(vlsu_ready),
+    .core_halt_o(core_halt_o)
 );
 
 ////////////////////////////////////////
