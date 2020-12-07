@@ -27,7 +27,7 @@ module vector_lsu (
     output logic [31:0] data_wdata_o,
 
     input  logic [1:0]  cycle_count_i,
-
+ 
     // Target Data
     input  wire [31:0]  op0_data_i, // Source (Load) / Destination (Store)
     input  wire [31:0]  op1_data_i, // Stride
@@ -48,6 +48,14 @@ mapping_unit mu (
     .sew_i(vsew_i),
     .reg_select(vr_addr_i[1:0])
 );
+
+logic [31:0] byte_stride;
+
+always_comb begin
+    byte_stride = 'd4;
+    if(vlsu_strided_i)
+        byte_stride = op1_data_i;
+end
 
 // Memory Master Controller
 typedef enum {IDLE, LOAD_REQ, STORE_REQ, LOAD_RVAL, STORE_RVAL} vlsu_obi_state;
@@ -81,7 +89,7 @@ always_comb begin
     case(current_state)
         IDLE: begin
             if(vlsu_en_i & vlsu_load_i) begin
-                data_addr_o = op0_data_i + (cycle_count_i * 'd4);
+                data_addr_o = op0_data_i + (byte_stride * cycle_count_i);
                 data_req_o = 1'b1;
                 next_state = LOAD_REQ;
             end else if(vlsu_en_i & vlsu_store_i) begin

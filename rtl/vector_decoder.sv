@@ -58,15 +58,17 @@ logic [5:0] funct6;
 logic [4:0] source1;
 logic [4:0] source2;
 logic [4:0] destination;
-assign funct3 = reg_apu_operands[2][14:12];
-assign major_opcode = reg_apu_operands[2][6:0];
-assign funct6 = reg_apu_operands[2][31:26];
-assign source1 = reg_apu_operands[2][19:15];
-assign source2 = reg_apu_operands[2][24:20];
-assign destination = reg_apu_operands[2][11:7];
+logic [2:0] mop; // Vector Addressing Mode
+assign funct3 = reg_apu_operands[0][14:12];
+assign major_opcode = reg_apu_operands[0][6:0];
+assign funct6 = reg_apu_operands[0][31:26];
+assign source1 = reg_apu_operands[0][19:15];
+assign source2 = reg_apu_operands[0][24:20];
+assign destination = reg_apu_operands[0][11:7];
+assign mop = funct6[2:0];
 
-assign scalar_operand1 = reg_apu_operands[0];
-assign scalar_operand2 = reg_apu_operands[1];
+assign scalar_operand1 = reg_apu_operands[1];
+assign scalar_operand2 = reg_apu_operands[2];
 
 always_ff @(posedge clk, negedge n_reset)
     if(~n_reset)
@@ -111,8 +113,8 @@ begin
         EXEC:
         begin
             if (cycle_count == max_cycle_count) begin
-                if ( vlsu_load_o | vlsu_store_o ) begin
-                    if( vlsu_ready_i ) begin
+                if (vlsu_load_o | vlsu_store_o) begin
+                    if(vlsu_ready_i) begin
                         apu_rvalid = 1'b1;
                         next_state = WAIT;
                     end
@@ -120,6 +122,9 @@ begin
                     apu_rvalid = 1'b1;
                     next_state = WAIT;
                 end
+            end else if (multi_cycle_instr == 0) begin
+                apu_rvalid = 1'b1;
+                next_state = WAIT;
             end
         end
         VALID:
@@ -190,9 +195,9 @@ begin
     end
 
     if (funct3 == V_OPCFG)
-        immediate_operand = reg_apu_operands[2][30:20];
+        immediate_operand = reg_apu_operands[0][30:20];
     else
-        immediate_operand = {'0, reg_apu_operands[2][19:15]};
+        immediate_operand = {'0, reg_apu_operands[0][19:15]};
 end
 
 always_comb
@@ -248,6 +253,7 @@ begin
                 multi_cycle_instr = 1'b1;
                 vlsu_en_o = 1'b1;
                 vlsu_load_o = 1'b1;
+                if(mop) vlsu_strided_o = 1'b1;
             end else $error("Unimplemented LOAD_FP instruction");
         end
         else if (major_opcode == V_MAJOR_STORE_FP)
