@@ -156,7 +156,7 @@ always_ff @(posedge clk, negedge n_reset)
                 cycle_count <= cycle_count + 1'b1;
             else
                 cycle_count <= cycle_count;
-                
+
     end
 
 
@@ -376,13 +376,18 @@ begin
                         apu_result_select = APU_RESULT_SRC_VS2_0;
                     end
 
-                    // vmv (.vi)
+                    // vmv.v
                     6'b010111:
                     begin
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         vd_data_src = VREG_WB_SRC_SCALAR;
-                        operand_select = PE_OPERAND_IMMEDIATE;
+                        // vmv.v.i
+                        if (funct3 == V_OPIVI)
+                            operand_select = PE_OPERAND_IMMEDIATE;
+                        // vmv.v.x
+                        else if (funct3 == V_OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
                     end
 
                     // vsadd
