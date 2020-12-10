@@ -167,9 +167,10 @@ begin
     // Subtract 1 because if VL=4/8/16 it will want another cycle otherwise
     // Number of loads dependant on SEW (For contiguous 8-bit values)
     // TODO: Determine strided count
-    vl_zero_indexed = (vl - 1'b1) >> (2'd2 - vsew);
+    // vl_zero_indexed = (vl - 1'b1) >> (2'd2 - vsew); // Used for memory
+    vl_zero_indexed = vl - 1'b1;
     // Elements can be handled 4 at a time so divide VL by 4, or force 0
-    max_cycle_count = multi_cycle_instr ? vl_zero_indexed[1:0] : 2'd0;
+    max_cycle_count = multi_cycle_instr ? vl_zero_indexed[3:2] : 2'd0;
 
     if (fix_vd_addr)
     begin
@@ -188,9 +189,9 @@ begin
             end
             2'd1: // 16b
             begin
-                vs1_addr = source1 + cycle_count; //{cycle_count, 1'b0};
-                vs2_addr = source2 + cycle_count; //{cycle_count, 1'b0};
-                vd_addr = destination + cycle_count;
+                vs1_addr = source1 + {cycle_count, 1'b0};
+                vs2_addr = source2 + {cycle_count, 1'b0};
+                vd_addr = destination + {cycle_count, 1'b0};
             end
             default:
             begin
