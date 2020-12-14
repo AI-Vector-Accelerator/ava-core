@@ -325,6 +325,11 @@ begin
                         output_mode = PE_OP_MODE_PASS_MIN;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
+                        // Supports vmin.vv and vmin.vx
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        else if (funct3 == V_OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
                     end
 
                     // vmax, vredmax
