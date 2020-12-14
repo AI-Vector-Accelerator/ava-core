@@ -172,35 +172,35 @@ begin
     // Elements can be handled 4 at a time so divide VL by 4, or force 0
     max_cycle_count = multi_cycle_instr ? vl_zero_indexed[3:2] : 2'd0;
 
-    if (fix_vd_addr)
-    begin
-        vs1_addr = source1;
-        vs2_addr = source2;
-        vd_addr = destination;
-    end
-    else
-    begin
-        case (vsew)
-            2'd0: // 8b
-            begin
-                vs1_addr = source1 + cycle_count;
-                vs2_addr = source2 + cycle_count;
+    case (vsew)
+        2'd0: // 8b
+        begin
+            vs1_addr = source1 + cycle_count;
+            vs2_addr = source2 + cycle_count;
+            if (fix_vd_addr)
+                vd_addr = destination;
+            else
                 vd_addr = destination + cycle_count;
-            end
-            2'd1: // 16b
-            begin
-                vs1_addr = source1 + {cycle_count, 1'b0};
-                vs2_addr = source2 + {cycle_count, 1'b0};
+        end
+        2'd1: // 16b
+        begin
+            vs1_addr = source1 + {cycle_count, 1'b0};
+            vs2_addr = source2 + {cycle_count, 1'b0};
+            if (fix_vd_addr)
+                vd_addr = destination;
+            else
                 vd_addr = destination + {cycle_count, 1'b0};
-            end
-            default:
-            begin
-                vs1_addr = source1 + cycle_count;
-                vs2_addr = source2 + cycle_count;
+        end
+        default:
+        begin
+            vs1_addr = source1 + cycle_count;
+            vs2_addr = source2 + cycle_count;
+            if (fix_vd_addr)
+                vd_addr = destination;
+            else
                 vd_addr = destination + cycle_count;
-            end
-        endcase
-    end
+        end
+    endcase
 
     if (funct3 == V_OPCFG)
         immediate_operand = reg_apu_operands[0][30:20];
@@ -215,10 +215,12 @@ begin
     if (multi_cycle_instr)
     begin
         if (cycle_count == max_cycle_count)
-        // On last cycle, work out how many elements remain
-            elements_to_write = vl[1:0];
-        else if (operand_select == PE_OPERAND_RIPPLE)
-            elements_to_write = 2'd1;
+            if (operand_select == PE_OPERAND_RIPPLE)
+            // Reductions only want to write in last cycle to only one element
+                elements_to_write = 2'd1;
+            else
+            // On last cycle, work out how many elements remain
+                elements_to_write = vl[1:0];
         else
             elements_to_write = 2'd0;
     end

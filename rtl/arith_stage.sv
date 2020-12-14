@@ -84,7 +84,7 @@ pe_32b pe2 (
 pe_32b pe3 (
     .out(pe3_out),
     .a(vs2_data[127:96]),
-    .b(pe2_b_data),
+    .b(pe3_b_data),
     .c(vs3_data[127:96]),
     .op(op),
     .vsew(vsew),
