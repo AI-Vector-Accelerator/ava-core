@@ -263,9 +263,9 @@ always_comb begin
         APU_RESULT_SRC_VS2_0:
             case (vsew)
                 2'd0: // 8b
-                    reg_apu_result = { {24{1'b0}}, vs2_data[7:0] };
+                    reg_apu_result = { {24{vs2_data[7]}}, vs2_data[7:0] };
                 2'd1: // 16b
-                    reg_apu_result = { {16{1'b0}}, vs2_data[15:0] };
+                    reg_apu_result = { {16{vs2_data[15]}}, vs2_data[15:0] };
                 2'd2:// 32b
                     reg_apu_result = vs2_data[31:0];
             endcase
