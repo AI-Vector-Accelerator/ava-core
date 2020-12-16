@@ -301,11 +301,12 @@ begin
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         // vadd.vv
-                        // if (funct3 == V_OPIVV)
-                        // begin
-                            // At some point may need to select imm. operand
-                        // end
-                        if (funct3 == V_OPMVV) // vredsum
+                        if (funct3 == V_OPIVV)
+                            operand_select = PE_OPERAND_VS1;
+                        // vadd.vx
+                        else if (funct3 == V_OPIVX)
+                            operand_select = PE_OPERAND_SCALAR;
+                        else if (funct3 == V_OPMVV) // vredsum
                         begin
                             operand_select = PE_OPERAND_RIPPLE;
                             fix_vd_addr = 1'b1;
