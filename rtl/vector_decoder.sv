@@ -24,6 +24,7 @@ module vector_decoder (
     output logic [1:0] pe_mul_us,
     output logic [1:0] widening,
     output apu_result_src_t apu_result_select,
+    output logic unsigned_immediate,
     input wire clk,
     input wire n_reset,
     input wire apu_req,
@@ -43,7 +44,6 @@ module vector_decoder (
 enum {WAIT, EXEC, VALID} state, next_state;
 
 logic [1:0] max_cycle_count;
-// logic [1:0] cycle_count;
 logic multi_cycle_instr;
 logic fix_vd_addr;
 
@@ -205,7 +205,7 @@ begin
     if (funct3 == V_OPCFG)
         immediate_operand = reg_apu_operands[0][30:20];
     else
-        immediate_operand = {'0, reg_apu_operands[0][19:15]};
+            immediate_operand = {'0, reg_apu_operands[0][19:15]};
 end
 
 always_comb
@@ -244,6 +244,7 @@ begin
     widening = 2'b00;
     apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
+    unsigned_immediate = 1'b0;
 
     vlsu_en_o = 1'b0;
     vlsu_load_o = 1'b0;
@@ -447,7 +448,10 @@ begin
                         else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
                         else if (funct3 == V_OPIVI)
+                        begin
+                            unsigned_immediate = 1'b1;
                             operand_select = PE_OPERAND_IMMEDIATE;
+                        end
                     end
 
                     // vsra
@@ -461,7 +465,10 @@ begin
                         else if (funct3 == V_OPIVX)
                             operand_select = PE_OPERAND_SCALAR;
                         else if (funct3 == V_OPIVI)
+                        begin
+                            unsigned_immediate = 1'b1;
                             operand_select = PE_OPERAND_IMMEDIATE;
+                        end
                     end
 
                     // vwredsum

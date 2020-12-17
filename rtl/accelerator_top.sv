@@ -53,6 +53,7 @@ pe_operand_t operand_select;
 wire [1:0] pe_mul_us;
 wire [1:0] widening;
 apu_result_src_t apu_result_select;
+wire unsigned_immediate;
 
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
@@ -120,6 +121,7 @@ vector_decoder vdec0 (
     .pe_mul_us(pe_mul_us),
     .widening(widening),
     .apu_result_select(apu_result_select),
+    .unsigned_immediate(unsigned_immediate),
     .clk(clk),
     .n_reset(n_reset),
     .apu_req(apu_req),
@@ -187,6 +189,7 @@ arith_stage arith_stage0 (
     .operand_select(operand_select),
     .widening(widening),
     .mul_us(pe_mul_us),
+    .unsigned_immediate(unsigned_immediate),
     .vl(vl),
     .vsew(vsew)
 );

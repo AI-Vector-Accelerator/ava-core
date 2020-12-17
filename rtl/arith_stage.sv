@@ -22,6 +22,7 @@ module arith_stage (
     input pe_operand_t operand_select,
     input wire [1:0] widening,
     input wire [1:0] mul_us,
+    input wire unsigned_immediate,
     input wire [4:0] vl,
     input wire [1:0] vsew
 );
@@ -97,7 +98,8 @@ pe_32b pe3 (
 scalar_replicate scalar_rep0 (
     .replicated_out(replicated_scalar),
     .scalar_in(scalar_to_replicate),
-    .vsew(vsew)
+    .vsew(vsew),
+    .us(1'b0)
 );
 
 // Update the intermediate register used for reduction operations every cycle
@@ -131,15 +133,24 @@ begin
         end
         PE_OPERAND_IMMEDIATE:
         begin
-            pe0_b_data = {'0, imm_operand[4:0]};
-            pe1_b_data = {'0, imm_operand[4:0]};
-            pe2_b_data = {'0, imm_operand[4:0]};
-            pe3_b_data = {'0, imm_operand[4:0]};
-
+            if (unsigned_immediate)
+            begin
+                pe0_b_data = {'0, imm_operand[4:0]};
+                pe1_b_data = {'0, imm_operand[4:0]};
+                pe2_b_data = {'0, imm_operand[4:0]};
+                pe3_b_data = {'0, imm_operand[4:0]};
+            end
+            else
+            begin
+                pe0_b_data = {{27{imm_operand[4]}}, imm_operand[4:0]};
+                pe1_b_data = {{27{imm_operand[4]}}, imm_operand[4:0]};
+                pe2_b_data = {{27{imm_operand[4]}}, imm_operand[4:0]};
+                pe3_b_data = {{27{imm_operand[4]}}, imm_operand[4:0]};
+            end
             // This line handles a special case - the scalar replicate logic is
             // used for vmv.v.i instructions but the PE is not used. In this
             // case the immediate operand needs to be replicated and returned.
-            scalar_to_replicate = {'0, imm_operand};
+            scalar_to_replicate = {{27{imm_operand[4]}}, imm_operand[4:0]};
         end
         PE_OPERAND_RIPPLE:
         begin

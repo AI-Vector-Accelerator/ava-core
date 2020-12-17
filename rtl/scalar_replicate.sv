@@ -3,7 +3,8 @@
 module scalar_replicate (
     output logic [127:0] replicated_out,
     input wire [31:0] scalar_in,
-    input wire [1:0] vsew
+    input wire [1:0] vsew,
+    input wire us
 );
 
 // When a scalar operand comes into the accelerator there is only one copy of
@@ -13,27 +14,51 @@ module scalar_replicate (
 always_comb
     case (vsew)
         2'd0: // 8b
-            replicated_out = {
-                24'd0,
-                scalar_in[7:0],
-                24'd0,
-                scalar_in[7:0],
-                24'd0,
-                scalar_in[7:0],
-                24'd0,
-                scalar_in[7:0]
-            };
+            if (us)
+                replicated_out = {
+                    24'd0,
+                    scalar_in[7:0],
+                    24'd0,
+                    scalar_in[7:0],
+                    24'd0,
+                    scalar_in[7:0],
+                    24'd0,
+                    scalar_in[7:0]
+                };
+            else
+                replicated_out = {
+                    {24{scalar_in[7]}},
+                    scalar_in[7:0],
+                    {24{scalar_in[7]}},
+                    scalar_in[7:0],
+                    {24{scalar_in[7]}},
+                    scalar_in[7:0],
+                    {24{scalar_in[7]}},
+                    scalar_in[7:0]
+                };
         2'd1: // 16b
-            replicated_out = {
-                16'd0,
-                scalar_in[15:0],
-                16'd0,
-                scalar_in[15:0],
-                16'd0,
-                scalar_in[15:0],
-                16'd0,
-                scalar_in[15:0]
-            };
+            if (us)
+                replicated_out = {
+                    16'd0,
+                    scalar_in[15:0],
+                    16'd0,
+                    scalar_in[15:0],
+                    16'd0,
+                    scalar_in[15:0],
+                    16'd0,
+                    scalar_in[15:0]
+                };
+            else
+                replicated_out = {
+                    {16{scalar_in[15]}},
+                    scalar_in[15:0],
+                    {16{scalar_in[15]}},
+                    scalar_in[15:0],
+                    {16{scalar_in[15]}},
+                    scalar_in[15:0],
+                    {16{scalar_in[15]}},
+                    scalar_in[15:0]
+                };
         2'd2: // 32b
             replicated_out = {
                 {4{scalar_in}}
