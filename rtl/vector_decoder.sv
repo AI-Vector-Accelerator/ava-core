@@ -411,19 +411,32 @@ begin
                         multi_cycle_instr = 1'b1;
                     end
 
-                    // vsll
+                    // vsll/vmul
                     6'b100101:
                     begin
-                        // Different variants???
-                        pe_op = PE_ARITH_LSHIFT;
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         if (funct3 == V_OPIVV)
+                        begin
+                            pe_op = PE_ARITH_LSHIFT;
                             operand_select = PE_OPERAND_VS1;
+                        end
                         else if (funct3 == V_OPIVX)
+                        begin
+                            pe_op = PE_ARITH_LSHIFT;
                             operand_select = PE_OPERAND_SCALAR;
+                        end
                         else if (funct3 == V_OPIVI)
+                        begin
+                            pe_op = PE_ARITH_LSHIFT;
                             operand_select = PE_OPERAND_IMMEDIATE;
+                        end
+                        else if (funct3 == V_OPMVV)
+                        begin
+                            pe_op = PE_ARITH_MUL;
+                            operand_select = PE_OPERAND_VS1;
+                        end
+
                     end
 
                     // vsmul
@@ -492,9 +505,9 @@ begin
                         vec_reg_write = 1'b1;
                         multi_cycle_instr = 1'b1;
                         widening = 2'b01;
-                        if (funct3 == V_OPIVV)
+                        if (funct3 == V_OPMVV)
                             operand_select = PE_OPERAND_VS1;
-                        else if (funct3 == V_OPIVX)
+                        else if (funct3 == V_OPMVX)
                             operand_select = PE_OPERAND_SCALAR;
                     end
 
