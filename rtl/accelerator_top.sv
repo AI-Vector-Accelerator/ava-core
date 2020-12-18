@@ -54,6 +54,7 @@ wire [1:0] pe_mul_us;
 wire [1:0] widening;
 apu_result_src_t apu_result_select;
 wire unsigned_immediate;
+wire wide_vs1;
 
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
@@ -122,6 +123,7 @@ vector_decoder vdec0 (
     .widening(widening),
     .apu_result_select(apu_result_select),
     .unsigned_immediate(unsigned_immediate),
+    .wide_vs1(wide_vs1),
     .clk(clk),
     .n_reset(n_reset),
     .apu_req(apu_req),
@@ -166,7 +168,8 @@ vector_registers vreg0 (
     .clk(clk),
     .n_reset(n_reset),
     .write(vec_reg_write | vec_reg_write_lsu ),
-    .widening_op(widening[0])
+    .widening_op(widening[0]),
+    .wide_vs1(wide_vs1)
 );
 
 ////////////////////////////////////////
@@ -190,6 +193,7 @@ arith_stage arith_stage0 (
     .widening(widening),
     .mul_us(pe_mul_us),
     .unsigned_immediate(unsigned_immediate),
+    .wide_vs1(wide_vs1),
     .vl(vl),
     .vsew(vsew)
 );

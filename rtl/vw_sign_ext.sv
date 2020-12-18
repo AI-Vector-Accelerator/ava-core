@@ -9,7 +9,8 @@ module vw_sign_ext (
     input wire [31:0] b,
     input wire [31:0] c,
     input wire [1:0] widening, // 2'd1 for 2*widening, 2'd2 for quad widening
-    input wire [1:0] vsew
+    input wire [1:0] vsew,
+    input wire wide_b
 );
 
 always_comb
@@ -17,7 +18,15 @@ always_comb
         2'd0: // 8b
         begin
             sign_ext_a = {{24{a[7]}}, a[7:0]};
-            sign_ext_b = {{24{b[7]}}, b[7:0]};
+
+            // For vwredsum (theoretically other mixed-width instructions) the b
+            // operand for each PE is 2*VSEW bits because it is an intermediate
+            // result. So treat it as if vsew was twice as large
+            if (wide_b)
+                sign_ext_b = {{16{b[15]}}, b[15:0]};
+            else
+                sign_ext_b = {{24{b[7]}}, b[7:0]};
+
             if (widening[0])
                 sign_ext_c = {{16{c[15]}}, c[15:0]};
             else if (widening[1])
@@ -28,7 +37,12 @@ always_comb
         2'd1: // 16b
         begin
             sign_ext_a = {{16{a[15]}}, a[15:0]};
-            sign_ext_b = {{16{b[15]}}, b[15:0]};
+
+            if (wide_b)
+                sign_ext_b = b;
+            else
+                sign_ext_b = {{16{b[15]}}, b[15:0]};
+
             if (widening[0])
                 sign_ext_c = c;
             else if (widening[1])

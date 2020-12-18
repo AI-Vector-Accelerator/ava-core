@@ -11,7 +11,8 @@ module vector_registers (
     input wire clk,
     input wire n_reset,
     input wire write,
-    input wire widening_op
+    input wire widening_op,
+    input wire wide_vs1
 );
 
 localparam VLEN = 32;
@@ -269,16 +270,32 @@ begin
     case (vsew)
         2'd0: // 8b
         begin
-            vs1_data = {
-                {24{1'b0}},
-                vs1_rd_data0[31:24],
-                {24{1'b0}},
-                vs1_rd_data0[23:16],
-                {24{1'b0}},
-                vs1_rd_data0[15:8],
-                {24{1'b0}},
-                vs1_rd_data0[7:0]
-            };
+            // For vwredsum (theoretically other mixed-width instructions) the B
+            // operand (which comes from vs1[0]) is 2*VSEW bits. So treat it as
+            // for wider ones.
+            if (wide_vs1)
+                vs1_data = {
+                    {16{1'b0}},
+                    vs1_rd_data1[31:16],
+                    {16{1'b0}},
+                    vs1_rd_data1[15:0],
+                    {16{1'b0}},
+                    vs1_rd_data0[31:16],
+                    {16{1'b0}},
+                    vs1_rd_data0[15:0]
+                };
+            else
+                vs1_data = {
+                    {24{1'b0}},
+                    vs1_rd_data0[31:24],
+                    {24{1'b0}},
+                    vs1_rd_data0[23:16],
+                    {24{1'b0}},
+                    vs1_rd_data0[15:8],
+                    {24{1'b0}},
+                    vs1_rd_data0[7:0]
+                };
+
             vs2_data = {
                 {24{1'b0}},
                 vs2_rd_data0[31:24],
@@ -318,16 +335,25 @@ begin
         end
         2'd1: // 16b
         begin
-            vs1_data = {
-                {16{1'b0}},
-                vs1_rd_data1[31:16],
-                {16{1'b0}},
-                vs1_rd_data1[15:0],
-                {16{1'b0}},
-                vs1_rd_data0[31:16],
-                {16{1'b0}},
-                vs1_rd_data0[15:0]
-            };
+            if (wide_vs1)
+                vs1_data = {
+                    vs1_rd_data3,
+                    vs1_rd_data2,
+                    vs1_rd_data1,
+                    vs1_rd_data0
+                };
+            else
+                vs1_data = {
+                    {16{1'b0}},
+                    vs1_rd_data1[31:16],
+                    {16{1'b0}},
+                    vs1_rd_data1[15:0],
+                    {16{1'b0}},
+                    vs1_rd_data0[31:16],
+                    {16{1'b0}},
+                    vs1_rd_data0[15:0]
+                };
+
             vs2_data = {
                 {16{1'b0}},
                 vs2_rd_data1[31:16],

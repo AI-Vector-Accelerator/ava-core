@@ -25,6 +25,7 @@ module vector_decoder (
     output logic [1:0] widening,
     output apu_result_src_t apu_result_select,
     output logic unsigned_immediate,
+    output logic wide_vs1,
     input wire clk,
     input wire n_reset,
     input wire apu_req,
@@ -245,6 +246,7 @@ begin
     apu_result_select = APU_RESULT_SRC_VL;
     multi_cycle_instr = 1'b0;
     unsigned_immediate = 1'b0;
+    wide_vs1 = 1'b0;
 
     vlsu_en_o = 1'b0;
     vlsu_load_o = 1'b0;
@@ -480,6 +482,7 @@ begin
                         fix_vd_addr = 1'b1;
                         multi_cycle_instr = 1'b1;
                         widening = 2'b01;
+                        wide_vs1 = 1'b1;
                     end
 
                     // vwmul

@@ -16,7 +16,8 @@ module pe_32b (
     input wire [1:0] widening, // 2'd1 for widening, 2'd2 for quad widening
     input wire [1:0] mul_us, // Specifies each multiplier input as signed or unsigned
     input pe_saturate_mode_t saturate_mode,
-    input pe_output_mode_t output_mode
+    input pe_output_mode_t output_mode,
+    input wire wide_b
 );
 
 // Usually input "a" is vs2, input "b" is vs1 and "c" is vs3/vd. (This is for
@@ -51,7 +52,8 @@ vw_sign_ext se0 (
     .b(b),
     .c(c),
     .widening(widening),
-    .vsew(vsew)
+    .vsew(vsew),
+    .wide_b(wide_b)
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -126,18 +128,16 @@ begin
         add_a = {1'b0, mult_wide[31:0]};
         add_b = {1'b0, c};
     end
-    else if (saturate_mode != PE_SAT_NONE)
-    begin
-        // Need to sign extend for saturated ops as another bit is gained to be
-        // used for saturation. Technically this means this instruction is always
-        // a signed operation. Would have to split this up if wanted to toggle
-        add_a = {a[31], a};
-        add_b = {b[31], b};
-    end
     else
     begin
-        add_a = {1'b0, a};
-        add_b = {1'b0, b};
+        // Need to sign extend for saturated ops as another bit is gained to be
+        // used for saturation.
+        // This means instructions are fixed as signed. Would have to split up
+        // if wanted to toggle signed/unsigned.
+        // For some operations (such as regular addition) sign extension isn't
+        // needed. But it doesn't do any harm and simplifies the logic.
+        add_a = {sign_ext_a[31], sign_ext_a};
+        add_b = {sign_ext_b[31], sign_ext_b};
     end
 
     if (subtract)

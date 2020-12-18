@@ -13,7 +13,6 @@ module arith_stage (
     input wire [127:0] vs3_data,
     input wire [31:0] scalar_operand,
     input wire [4:0] imm_operand,
-    // input wire pe_ripple_inputs,
     input wire [1:0] elements_to_write,
     input wire [1:0] cycle_count,
     input pe_arith_op_t op,
@@ -23,6 +22,7 @@ module arith_stage (
     input wire [1:0] widening,
     input wire [1:0] mul_us,
     input wire unsigned_immediate,
+    input wire wide_vs1,
     input wire [4:0] vl,
     input wire [1:0] vsew
 );
@@ -53,7 +53,8 @@ pe_32b pe0 (
     .widening(widening),
     .mul_us(mul_us),
     .saturate_mode(saturate_mode),
-    .output_mode(output_mode)
+    .output_mode(output_mode),
+    .wide_b(wide_vs1)
 );
 
 pe_32b pe1 (
@@ -66,7 +67,8 @@ pe_32b pe1 (
     .widening(widening),
     .mul_us(mul_us),
     .saturate_mode(saturate_mode),
-    .output_mode(output_mode)
+    .output_mode(output_mode),
+    .wide_b(wide_vs1)
 );
 
 pe_32b pe2 (
@@ -79,7 +81,8 @@ pe_32b pe2 (
     .widening(widening),
     .mul_us(mul_us),
     .saturate_mode(saturate_mode),
-    .output_mode(output_mode)
+    .output_mode(output_mode),
+    .wide_b(wide_vs1)
 );
 
 pe_32b pe3 (
@@ -92,7 +95,8 @@ pe_32b pe3 (
     .widening(widening),
     .mul_us(mul_us),
     .saturate_mode(saturate_mode),
-    .output_mode(output_mode)
+    .output_mode(output_mode),
+    .wide_b(wide_vs1)
 );
 
 scalar_replicate scalar_rep0 (
