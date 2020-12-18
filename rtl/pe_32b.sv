@@ -242,12 +242,12 @@ begin
                 out = sat_result;
         PE_OP_MODE_PASS_MAX:
             // Will do arithmetic op of a-b. If negative, b is larger so pass b
-            if (arith_result[31])
+            if (arith_result[32])
                 out = b;
             else
                 out = a;
         PE_OP_MODE_PASS_MIN:
-            if (arith_result[31])
+            if (arith_result[32])
                 out = a;
             else
                 out = b;
