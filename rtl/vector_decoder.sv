@@ -321,7 +321,7 @@ begin
                     begin
                         pe_op = PE_ARITH_SUB;
                         vec_reg_write = 1'b1;
-                        multi_cycle_instr = 1'b0;
+                        multi_cycle_instr = 1'b1;
                     end
 
                     // vmin
