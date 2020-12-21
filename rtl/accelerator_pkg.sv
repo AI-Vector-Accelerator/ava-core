@@ -56,6 +56,14 @@ typedef enum logic [1:0] {
     VREG_WB_SRC_SCALAR
 } vreg_wb_src_t;
 
+// Source of address of selected vector register
+// VREG_ADDR_SRC_DECODE: address from decoder
+// VREG_ADDR_SRC_VLSU: address from vlsu / address unit
+typedef enum logic {
+    VREG_ADDR_SRC_DECODE,
+    VREG_ADDR_SRC_VLSU
+} vreg_addr_src_t;
+
 // Source of data returned to CPU by via apu_result
 // APU_RESULT_SRC_VL: return VL value. For vsetvli
 // APU_RESULT_SRC_VS2_0: return first element of vs2. For vmv.x.s

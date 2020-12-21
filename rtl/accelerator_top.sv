@@ -38,7 +38,8 @@ wire [31:0] scalar_operand2;
 wire [10:0] immediate_operand;
 wire [4:0] vs1_addr;
 wire [4:0] vs2_addr;
-wire [4:0] vd_addr;
+wire [4:0] vd_addr_dec;
+logic [4:0] vd_addr_vlsu;
 wire csr_write;
 wire preserve_vl;
 wire set_vl_max;
@@ -46,6 +47,7 @@ wire [1:0] elements_to_write;
 wire [1:0] cycle_count;
 wire vec_reg_write;
 vreg_wb_src_t vd_data_src;
+vreg_wb_src_t vd_addr_src;
 pe_arith_op_t pe_op;
 pe_saturate_mode_t saturate_mode;
 pe_output_mode_t output_mode;
@@ -59,7 +61,7 @@ wire wide_vs1;
 // VLSU OUTPUTS
 wire [127:0] vlsu_wdata;
 logic vec_reg_write_lsu;
-
+logic vlsu_done;
 logic [4:0] vl_next_comb;
 
 // VECTOR REGISTERS OUTPUTS
@@ -107,7 +109,7 @@ vector_decoder vdec0 (
     .immediate_operand(immediate_operand),
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
-    .vd_addr(vd_addr),
+    .vd_addr(vd_addr_dec),
     .csr_write(csr_write),
     .preserve_vl(preserve_vl),
     .set_vl_max(set_vl_max),
@@ -115,6 +117,7 @@ vector_decoder vdec0 (
     .cycle_count(cycle_count),
     .vec_reg_write(vec_reg_write),
     .vd_data_src(vd_data_src),
+    .vd_addr_src(vd_addr_src),
     .pe_op(pe_op),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode),
@@ -137,13 +140,15 @@ vector_decoder vdec0 (
     .vlsu_store_o(vlsu_store),
     .vlsu_strided_o(vlsu_strided),
     .vlsu_ready_i(vlsu_ready),
+    .vlsu_done_i(vlsu_done),
     .core_halt_o(core_halt_o)
 );
 
 ////////////////////////////////////////
 // VECTOR REGISTERS
 logic [127:0] vd_data;
-always_comb
+logic [4:0] vd_addr;
+always_comb begin
     case (vd_data_src)
         VREG_WB_SRC_MEMORY:
             vd_data = vlsu_wdata;
@@ -154,6 +159,17 @@ always_comb
         default:
             vd_data = '0;
     endcase
+
+    case (vd_addr_src)
+        VREG_ADDR_SRC_DECODE:
+            vd_addr = vd_addr_dec;
+        VREG_ADDR_SRC_VLSU:
+            vd_addr = vd_addr_vlsu;
+        default:
+            vd_addr = '0;
+    endcase
+end
+
 
 vector_registers vreg0 (
     .vs1_data(vs1_data),
@@ -213,6 +229,7 @@ vector_lsu vlsu0 (
     .vlsu_store_i(vlsu_store),
     .vlsu_strided_i(vlsu_strided),
     .vlsu_ready_o(vlsu_ready),
+    .vlsu_done_o(vlsu_done),
 
     .data_req_o(data_req_o),
     .data_gnt_i(data_gnt_i),
@@ -230,7 +247,8 @@ vector_lsu vlsu0 (
 
     .vs_wdata_o(vlsu_wdata),
     .vs_rdata_i(vs3_data),
-    .vr_addr_i(vd_addr),
+    .vr_addr_i(vd_addr_dec),
+    .vd_addr_o(vd_addr_vlsu),
     .vr_we_o(vec_reg_write_lsu)
 );
 

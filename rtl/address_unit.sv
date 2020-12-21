@@ -9,8 +9,10 @@ module address_unit(
     input logic au_next_i,
     output logic [3:0] au_be_o,
     output logic [31:0] au_addr_o,
+    output logic [4:0] vd_offset_o,
     output logic au_valid_o,
-    output logic au_ready_o);
+    output logic au_ready_o,
+    output logic au_final_o);
 
     logic [1:0] ib_select; // Low 2 bits of initial address
     logic [3:0] be_gen;
@@ -25,11 +27,25 @@ module address_unit(
     logic signed [6:0] byte_track, byte_track_next;
     logic cycle_load;
 
+    always_ff @(posedge clk_i, negedge n_rst_i) begin
+        if(~n_rst_i)
+            vd_offset_o <= 5'b0;
+        else if (au_start_i)
+            vd_offset_o <= 5'b0;
+        else if (current_state == WAIT)
+            vd_offset_o <= vd_offset_o;
+        else if (~au_ready_o)
+            vd_offset_o <= vd_offset_o + cycle_bytes[4:0]; // Number of elements
+    end
+
     always_comb begin
-        if(au_valid_o) // Make sure that all our addresses are word aligned
+        if(au_valid_o) begin // Make sure that all our addresses are word aligned
             au_addr_o = {cycle_addr[31:2], 2'd0};
-        else
+            au_be_o = be_gen;
+        end else begin
             au_addr_o = 32'd0;
+            au_be_o = 4'b0000;
+        end
     end
 
     always_comb begin
@@ -146,6 +162,7 @@ module address_unit(
         cycle_load = 1'b0;
         au_valid_o = 1'b0;
         au_ready_o = 1'b0;
+        au_final_o = 1'b0;
         case(current_state)
             RESET: begin
                 au_ready_o = 1'b1;
@@ -165,14 +182,17 @@ module address_unit(
             CYCLE: begin
                 au_valid_o = 1'b1;
                 if(byte_track_next == 0) begin
-                    next_state = RESET;
+                    next_state = WAIT;
                 end else begin
                     cycle_load = 1'b1;
                     next_state = WAIT;
                 end
             end
             WAIT: begin
-                if(au_next_i)
+                if(byte_track_next == 0) begin
+                    au_final_o = 1'b1;
+                    next_state = RESET;
+                end else if(au_next_i)
                     next_state = CYCLE;
                 else
                     next_state = WAIT;

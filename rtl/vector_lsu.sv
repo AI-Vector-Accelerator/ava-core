@@ -15,6 +15,7 @@ module vector_lsu (
     input  wire         vlsu_store_i,
     input  wire         vlsu_strided_i,
     output logic        vlsu_ready_o,
+    output logic        vlsu_done_o,
 
     // OBI Memory Master
     output logic        data_req_o,
@@ -36,6 +37,7 @@ module vector_lsu (
     output logic [127:0] vs_wdata_o,
     input  logic [127:0] vs_rdata_i,
     input  logic [4:0] vr_addr_i,
+    output logic [4:0] vd_addr_o, // Redirected vector register address
     output logic vr_we_o
 );
 
@@ -47,13 +49,15 @@ mapping_unit mu (
     .arith_format_o(vs_wdata_o),
     .memory_format_i(data_rdata_i),
     .sew_i(vsew_i),
-    .reg_select(vr_addr_i[1:0])
+    .reg_select(vd_addr_o[1:0])
 );
 
-logic au_start, au_next
+logic au_start, au_next;
 logic [3:0] au_be;
 logic [31:0] au_addr;
 logic au_valid, au_ready;
+logic au_final;
+logic [4:0] vd_offset;
 
 // Calculates the address and byte enable sequences for multi-cycle loads
 address_unit au (
@@ -61,8 +65,9 @@ address_unit au (
     .n_rst_i        (n_reset),
 
     .base_addr_i    (op0_data_i),
-    .stride_i       (vlsu_strided ? op1_data_i : (31'd1 << vsew) ), // If not strided, use unit stride
-    
+    .stride_i       (vlsu_strided_i ? op1_data_i : (31'd1 << vsew_i) ), // If not strided, use unit stride
+    .vd_offset_o    (vd_offset),
+
     .vl_i           (vl_i),
     .vsew_i         (vsew_i),
     
@@ -71,22 +76,40 @@ address_unit au (
     .au_be_o        (au_be), //[ 3:0]
     .au_addr_o      (au_addr), //[31:0]
     .au_valid_o     (au_valid),
-    .au_ready_o     (au_ready)
+    .au_ready_o     (au_ready),
+    .au_final_o     (au_final)
 ); 
 
 always_comb begin
     vlsu_ready_o = 1'b0;
     au_start = 1'b0;
     au_next  = 1'b0;
+
+    vr_we_o = 1'b0;
+    data_req_o  = 1'b0;
+    data_addr_o = au_addr;
+    data_we_o = 32'd0;
+    data_be_o = au_be;
+    data_wdata_o = 32'd0;
+    vlsu_done_o = au_final;
+
+    // Calculate offset of vd 
+    vd_addr_o = vr_addr_i + vd_offset[4:2] - 1;
+
     if(vlsu_en_i) begin
         vlsu_ready_o = 1'b1;
         if(vlsu_load_i && au_ready) begin
-            vlsu_ready_o = 1'b0;
+            vlsu_ready_o = 1'b0; // Start transfer
             au_start = 1'b1;
-        end else if(~au_ready) begin
-            vlsu_ready_o = 1b0;
-            if(au_valid) =
-
+        end else if(vlsu_load_i && ~au_ready) begin
+            vlsu_ready_o = 1'b0;
+            if(au_valid) begin
+                data_req_o = 1'b1; // Send data request
+            end
+            if(data_rvalid_i) begin
+                vr_we_o = 1'b1; // Write to register file
+                au_next = 1'b1;
+            end
         end
     end
 end
