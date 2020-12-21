@@ -18,10 +18,12 @@ int main(int argc, char **argv) {
 
     tb->clk_i = 0;
     tb->n_rst_i = 1;
-    tb->base_addr_i = 3;
-    tb->stride = 3;
-    tb->vl_i = 16;
+    tb->base_addr_i = 4;
+    tb->stride = 8;
+    tb->vl_i = 4;
+    tb->vsew_i = 2;
     tb->load_first = 0;
+    tb->next_cycle = 0;
 	tb->eval();
     main_time++;
     tb->n_rst_i = 0;
@@ -36,8 +38,23 @@ int main(int argc, char **argv) {
         tb->clk_i = !(tb->clk_i);
 		tb->eval();
         main_time++;
-        if(main_time == 11) tb->load_first = 1;
-        if(main_time == 13) tb->load_first = 0;
+        if(main_time == 15) tb->load_first = 1;
+        if(main_time == 17) tb->load_first = 0;
+
+        if(main_time == 21) tb->next_cycle = 1;
+        if(main_time == 23) tb->next_cycle = 0; 
+
+        if(main_time == 27) tb->next_cycle = 1;
+        if(main_time == 29) tb->next_cycle = 0;
+        
+        if(main_time == 33) tb->next_cycle = 1;
+        if(main_time == 35) tb->next_cycle = 0;
+
+        if(main_time == 39) tb->next_cycle = 1;
+        if(main_time == 41) tb->next_cycle = 0;
+        
+        if(main_time == 45) tb->next_cycle = 1;
+        if(main_time == 47) tb->next_cycle = 0;
 	}
     tb->final();
     delete(tb);
