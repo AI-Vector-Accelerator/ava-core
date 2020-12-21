@@ -42,6 +42,7 @@ module vector_lsu (
 logic [31:0] vs_rdata_sel;
 logic [5:0] vsew_size;
 
+// Converts 32-bit words into PE arithmetic format (TODO: Reverse for stores)
 mapping_unit mu (
     .arith_format_o(vs_wdata_o),
     .memory_format_i(data_rdata_i),
@@ -49,76 +50,45 @@ mapping_unit mu (
     .reg_select(vr_addr_i[1:0])
 );
 
-logic [31:0] byte_stride;
+logic au_start, au_next
+logic [3:0] au_be;
+logic [31:0] au_addr;
+logic au_valid, au_ready;
 
-always_comb begin
-    byte_stride = 'd4;
-    if(vlsu_strided_i)
-        byte_stride = op1_data_i;
-end
+// Calculates the address and byte enable sequences for multi-cycle loads
+address_unit au (
+    .clk_i          (clk),
+    .n_rst_i        (n_reset),
 
-// Memory Master Controller
-typedef enum {IDLE, LOAD_REQ, STORE_REQ, LOAD_RVAL, STORE_RVAL} vlsu_obi_state;
-vlsu_obi_state current_state, next_state;
-
-always_ff @(posedge clk, negedge n_reset) begin
-    if(~n_reset)
-        current_state <= IDLE;
-    else
-        current_state <= next_state;
-end
-
-always_comb begin
-    data_req_o = 1'b0;
-    data_addr_o = 32'd0;
-    data_we_o = 1'b0;
-    data_be_o = 4'd0;
-    data_wdata_o = 32'd0;
-    vlsu_ready_o = 1'b0;
-    vr_we_o = 1'b0;
-
-    vsew_size = 6'd8 << (vsew_i);
+    .base_addr_i    (op0_data_i),
+    .stride_i       (vlsu_strided ? op1_data_i : (31'd1 << vsew) ), // If not strided, use unit stride
     
-    case(vr_addr_i[1:0])
-        2'd0 : vs_rdata_sel = vs_rdata_i[31:0];
-        2'd1 : vs_rdata_sel = vs_rdata_i[63:32];
-        2'd2 : vs_rdata_sel = vs_rdata_i[95:64];
-        2'd3 : vs_rdata_sel = vs_rdata_i[127:96];
-    endcase
+    .vl_i           (vl_i),
+    .vsew_i         (vsew_i),
+    
+    .au_start_i     (au_start),
+    .au_next_i      (au_next),
+    .au_be_o        (au_be), //[ 3:0]
+    .au_addr_o      (au_addr), //[31:0]
+    .au_valid_o     (au_valid),
+    .au_ready_o     (au_ready)
+); 
 
-    case(current_state)
-        IDLE: begin
-            if(vlsu_en_i & vlsu_load_i) begin
-                data_addr_o = op0_data_i + (byte_stride * cycle_count_i);
-                data_req_o = 1'b1;
-                next_state = LOAD_REQ;
-            end else if(vlsu_en_i & vlsu_store_i) begin
-                data_addr_o = op0_data_i;
-                data_wdata_o = vs_rdata_sel;
-                data_we_o = 1'b1;
-                data_req_o = 1'b1;
-                data_be_o = 4'hf;
-                next_state = STORE_REQ;
-            end else 
-                next_state = IDLE;
+always_comb begin
+    vlsu_ready_o = 1'b0;
+    au_start = 1'b0;
+    au_next  = 1'b0;
+    if(vlsu_en_i) begin
+        vlsu_ready_o = 1'b1;
+        if(vlsu_load_i && au_ready) begin
+            vlsu_ready_o = 1'b0;
+            au_start = 1'b1;
+        end else if(~au_ready) begin
+            vlsu_ready_o = 1b0;
+            if(au_valid) =
+
         end
-        LOAD_REQ: begin
-            if(data_rvalid_i) begin
-                vr_we_o = 1'b1;
-                vlsu_ready_o = 1'b1;
-                next_state = IDLE;
-            end else
-                next_state = LOAD_REQ;
-        end
-        STORE_REQ: begin
-            if(data_rvalid_i) begin
-                vlsu_ready_o = 1'b1;
-                next_state = IDLE;    
-            end else
-                next_state = STORE_REQ;
-            
-        end
-    endcase    
+    end
 end
 
 endmodule
