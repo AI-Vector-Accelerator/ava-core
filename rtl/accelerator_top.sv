@@ -180,12 +180,14 @@ vector_registers vreg0 (
     .vs2_addr(vs2_addr),
     .vd_addr(vd_addr),
     .vsew(vsew),
+    .vlmul(vlmul),
     .elements_to_write(elements_to_write),
     .clk(clk),
     .n_reset(n_reset),
     .write(vec_reg_write | vec_reg_write_lsu ),
     .widening_op(widening[0]),
-    .wide_vs1(wide_vs1)
+    .wide_vs1(wide_vs1),
+    .load_operation(vlsu_load)
 );
 
 ////////////////////////////////////////

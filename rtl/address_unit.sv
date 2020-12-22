@@ -8,8 +8,9 @@ module address_unit(
     input logic au_start_i,
     input logic au_next_i,
     output logic [3:0] au_be_o,
+    output logic [6:0] au_bc_o,
     output logic [31:0] au_addr_o,
-    output logic [4:0] vd_offset_o,
+    output logic [6:0] vd_offset_o,
     output logic au_valid_o,
     output logic au_ready_o,
     output logic au_final_o);
@@ -21,7 +22,7 @@ module address_unit(
     logic [31:0] cycle_addr;
     logic [6:0] cycle_bytes;
 
-    typedef enum {RESET, FIRST, CYCLE, WAIT} be_state;
+    typedef enum {RESET, FIRST, CYCLE, WAIT, FINAL} be_state;
     be_state current_state, next_state;
 
     logic signed [6:0] byte_track, byte_track_next;
@@ -29,13 +30,13 @@ module address_unit(
 
     always_ff @(posedge clk_i, negedge n_rst_i) begin
         if(~n_rst_i)
-            vd_offset_o <= 5'b0;
+            vd_offset_o <= 7'b0;
         else if (au_start_i)
-            vd_offset_o <= 5'b0;
-        else if (current_state == WAIT)
-            vd_offset_o <= vd_offset_o;
-        else if (~au_ready_o)
+            vd_offset_o <= 7'b0;
+        else if (au_next_i)
             vd_offset_o <= vd_offset_o + cycle_bytes[4:0]; // Number of elements
+        else
+            vd_offset_o <= vd_offset_o;
     end
 
     always_comb begin
@@ -189,13 +190,16 @@ module address_unit(
                 end
             end
             WAIT: begin
-                if(byte_track_next == 0) begin
-                    au_final_o = 1'b1;
-                    next_state = RESET;
-                end else if(au_next_i)
+                if(byte_track_next == 0)
+                    next_state = FINAL;
+                else if(au_next_i)
                     next_state = CYCLE;
                 else
                     next_state = WAIT;
+            end
+            FINAL: begin
+                au_final_o = 1'b1;
+                next_state = RESET;
             end
         endcase
     end

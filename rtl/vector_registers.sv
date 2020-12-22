@@ -7,12 +7,14 @@ module vector_registers (
     input wire [4:0] vs2_addr,
     input wire [4:0] vd_addr,   // Generally this doubles up as vs3 address
     input wire [1:0] vsew,
+    input wire [1:0] vlmul,
     input wire [1:0] elements_to_write,
     input wire clk,
     input wire n_reset,
     input wire write,
     input wire widening_op,
-    input wire wide_vs1
+    input wire wide_vs1,
+    input logic load_operation
 );
 
 localparam VLEN = 32;
@@ -172,7 +174,6 @@ always_comb
 begin
     // Note: can ignore LMUL in below cases as LMUL will restrict the max of VL,
     // which will prevent from writing to higher registers than LMUL wants
-
     if (widening_op)
         case (vsew)
             2'd0: // 8b -> 16b
@@ -194,70 +195,88 @@ begin
     wr_en2 = '0;
     wr_en3 = '0;
 
-    case (eff_vsew)
-        2'd0: // 8b
-        begin
-            // Only interested in first write port
-            case (elements_to_write)
-                2'd0: // Write all elements
-                    wr_en0 = 4'b1111;
-                2'd1:
-                    wr_en0 = 4'b0001;
-                2'd2:
-                    wr_en0 = 4'b0011;
-                2'd3:
-                    wr_en0 = 4'b0111;
-            endcase
-        end
-        2'd1: // 16b
-        begin
-            // Only interested in first 2 write ports
-            case (elements_to_write)
-                2'd0: // Write all elements
-                begin
-                    wr_en0 = 4'b1111;
-                    wr_en1 = 4'b1111;
-                end
-                2'd1:
-                begin
-                    wr_en0 = 4'b0011;
-                end
-                2'd2:
-                begin
-                    wr_en0 = 4'b1111;
-                end
-                4'd3:
-                begin
-                    wr_en0 = 4'b1111;
-                    wr_en1 = 4'b0011;
-                end
-            endcase
-        end
-        2'd2: // 32b
-        begin
-            // Need to consider all write ports
-            // wr_en0 always enabled, otherwise would be writing no elements
-            wr_en0 = 4'b1111;
-            case (elements_to_write)
-                2'd0: // Write all elements
-                begin
-                    wr_en1 = 4'b1111;
-                    wr_en2 = 4'b1111;
-                    wr_en3 = 4'b1111;
-                end
-                // 2'd1: // Not needed, just wr_en0 = '1
-                2'd2:
-                begin
-                    wr_en1 = 4'b1111;
-                end
-                2'd3:
-                begin
-                    wr_en1 = 4'b1111;
-                    wr_en2 = 4'b1111;
-                end
-            endcase
-        end
-    endcase
+    if(load_operation) begin
+        case (vlmul) 
+            2'd0: begin
+                wr_en0 = 4'b1111;
+            end
+            2'd1: begin
+                wr_en0 = 4'b1111;
+                wr_en1 = 4'b1111;
+            end
+            2'd2: begin
+                wr_en0 = 4'b1111;
+                wr_en1 = 4'b1111;
+                wr_en2 = 4'b1111;
+                wr_en3 = 4'b1111;
+            end
+        endcase
+    end else begin
+        case (eff_vsew)
+            2'd0: // 8b
+            begin
+                // Only interested in first write port
+                case (elements_to_write)
+                    2'd0: // Write all elements
+                        wr_en0 = 4'b1111;
+                    2'd1:
+                        wr_en0 = 4'b0001;
+                    2'd2:
+                        wr_en0 = 4'b0011;
+                    2'd3:
+                        wr_en0 = 4'b0111;
+                endcase
+            end
+            2'd1: // 16b
+            begin
+                // Only interested in first 2 write ports
+                case (elements_to_write)
+                    2'd0: // Write all elements
+                    begin
+                        wr_en0 = 4'b1111;
+                        wr_en1 = 4'b1111;
+                    end
+                    2'd1:
+                    begin
+                        wr_en0 = 4'b0011;
+                    end
+                    2'd2:
+                    begin
+                        wr_en0 = 4'b1111;
+                    end
+                    4'd3:
+                    begin
+                        wr_en0 = 4'b1111;
+                        wr_en1 = 4'b0011;
+                    end
+                endcase
+            end
+            2'd2: // 32b
+            begin
+                // Need to consider all write ports
+                // wr_en0 always enabled, otherwise would be writing no elements
+                wr_en0 = 4'b1111;
+                case (elements_to_write)
+                    2'd0: // Write all elements
+                    begin
+                        wr_en1 = 4'b1111;
+                        wr_en2 = 4'b1111;
+                        wr_en3 = 4'b1111;
+                    end
+                    // 2'd1: // Not needed, just wr_en0 = '1
+                    2'd2:
+                    begin
+                        wr_en1 = 4'b1111;
+                    end
+                    2'd3:
+                    begin
+                        wr_en1 = 4'b1111;
+                        wr_en2 = 4'b1111;
+                    end
+                endcase
+            end
+        endcase
+    end
 end
 
 
@@ -423,33 +442,51 @@ begin
     vd_wr_data1 = '0;
     vd_wr_data0 = '0;
 
-    case (eff_vsew)
-        2'd0: // 8b
-            vd_wr_data0 = {
-                vd_data[103:96],
-                vd_data[71:64],
-                vd_data[39:32],
-                vd_data[7:0]
-            };
-        2'd1: // 16b
-        begin
-            vd_wr_data1 = {
-                vd_data[111:96],
-                vd_data[79:64]
-            };
-            vd_wr_data0 = {
-                vd_data[47:32],
-                vd_data[15:0]
-            };
-        end
-        2'd2: // 32b
-        begin
-            vd_wr_data3 = vd_data[127:96];
-            vd_wr_data2 = vd_data[95:64];
-            vd_wr_data1 = vd_data[63:32];
-            vd_wr_data0 = vd_data[31:0];
-        end
-    endcase
+    if(load_operation) begin
+        case (vlmul) 
+            2'd0: begin
+               vd_wr_data0 = vd_data[31:0]; 
+            end
+            2'd1: begin
+                vd_wr_data1 = vd_data[63:32];
+                vd_wr_data0 = vd_data[31:0];
+            end
+            2'd2: begin
+                vd_wr_data3 = vd_data[127:96];
+                vd_wr_data2 = vd_data[95:64];
+                vd_wr_data1 = vd_data[63:32];
+                vd_wr_data0 = vd_data[31:0];
+            end
+        endcase
+    end else begin
+        case (eff_vsew)
+            2'd0: // 8b
+                vd_wr_data0 = {
+                    vd_data[103:96],
+                    vd_data[71:64],
+                    vd_data[39:32],
+                    vd_data[7:0]
+                };
+            2'd1: // 16b
+            begin
+                vd_wr_data1 = {
+                    vd_data[111:96],
+                    vd_data[79:64]
+                };
+                vd_wr_data0 = {
+                    vd_data[47:32],
+                    vd_data[15:0]
+                };
+            end
+            2'd2: // 32b
+            begin
+                vd_wr_data3 = vd_data[127:96];
+                vd_wr_data2 = vd_data[95:64];
+                vd_wr_data1 = vd_data[63:32];
+                vd_wr_data0 = vd_data[31:0];
+            end
+        endcase
+    end
 end
 
 endmodule
