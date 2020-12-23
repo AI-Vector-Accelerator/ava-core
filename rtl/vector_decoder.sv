@@ -17,7 +17,7 @@ module vector_decoder (
     output logic [1:0] cycle_count,
     output logic vec_reg_write,
     output vreg_wb_src_t vd_data_src,
-    output vreg_addr_src_t vd_addr_src,
+    output vreg_addr_src_t vs3_addr_src,
     output pe_arith_op_t pe_op,
     output pe_saturate_mode_t saturate_mode,
     output pe_output_mode_t output_mode,
@@ -235,7 +235,7 @@ begin
     set_vl_max = 1'b0;
     vec_reg_write = 1'b0;
     vd_data_src = VREG_WB_SRC_ARITH;
-    vd_addr_src = VREG_ADDR_SRC_DECODE;
+    vs3_addr_src = VS3_ADDR_SRC_DECODE;
     pe_op = PE_ARITH_ADD;
     operand_select = PE_OPERAND_VS1;
     saturate_mode = PE_SAT_NONE;
@@ -262,7 +262,6 @@ begin
         begin
             if(funct3 == 3'b111) begin
                 vd_data_src = VREG_WB_SRC_MEMORY;
-                vd_addr_src = VREG_ADDR_SRC_VLSU;
                 vlsu_en_o = 1'b1;
                 vlsu_load_o = 1'b1;
                 if(mop == 3'b010) vlsu_strided_o = 1'b1;
@@ -271,6 +270,7 @@ begin
         else if (major_opcode == V_MAJOR_STORE_FP)
         begin
             if(funct3 == 3'b111) begin
+                vs3_addr_src = VS3_ADDR_SRC_VLSU;
                 fix_vd_addr = 1'b1;
                 vlsu_en_o = 1'b1;
                 vlsu_store_o = 1'b1;

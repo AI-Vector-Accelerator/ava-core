@@ -38,16 +38,15 @@ wire [31:0] scalar_operand2;
 wire [10:0] immediate_operand;
 wire [4:0] vs1_addr;
 wire [4:0] vs2_addr;
-wire [4:0] vd_addr_dec;
-logic [4:0] vd_addr_vlsu;
+logic [4:0] vd_addr;
 wire csr_write;
 wire preserve_vl;
 wire set_vl_max;
 wire [1:0] elements_to_write;
 wire [1:0] cycle_count;
 wire vec_reg_write;
-vreg_wb_src_t vd_data_src;
-vreg_wb_src_t vd_addr_src;
+vreg_wb_src_t vs3_data_src;
+vreg_wb_src_t vs3_addr_src;
 pe_arith_op_t pe_op;
 pe_saturate_mode_t saturate_mode;
 pe_output_mode_t output_mode;
@@ -109,7 +108,7 @@ vector_decoder vdec0 (
     .immediate_operand(immediate_operand),
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
-    .vd_addr(vd_addr_dec),
+    .vd_addr(vd_addr),
     .csr_write(csr_write),
     .preserve_vl(preserve_vl),
     .set_vl_max(set_vl_max),
@@ -117,7 +116,7 @@ vector_decoder vdec0 (
     .cycle_count(cycle_count),
     .vec_reg_write(vec_reg_write),
     .vd_data_src(vd_data_src),
-    .vd_addr_src(vd_addr_src),
+    .vs3_addr_src(vs3_addr_src),
     .pe_op(pe_op),
     .saturate_mode(saturate_mode),
     .output_mode(output_mode),
@@ -147,7 +146,7 @@ vector_decoder vdec0 (
 ////////////////////////////////////////
 // VECTOR REGISTERS
 logic [127:0] vd_data;
-logic [4:0] vd_addr;
+logic [4:0] vs3_addr, vs3_addr_vlsu;
 always_comb begin
     case (vd_data_src)
         VREG_WB_SRC_MEMORY:
@@ -160,16 +159,14 @@ always_comb begin
             vd_data = '0;
     endcase
 
-    vd_addr = vd_addr_dec;
-
-    /*case (vd_addr_src)
-        VREG_ADDR_SRC_DECODE:
-            vd_addr = vd_addr_dec;
-        VREG_ADDR_SRC_VLSU:
-            vd_addr = vd_addr_vlsu;
+    case (vs3_addr_src)
+        VS3_ADDR_SRC_DECODE:
+            vs3_addr = vd_addr;
+        VS3_ADDR_SRC_VLSU:
+            vs3_addr = vs3_addr_vlsu;
         default:
-            vd_addr = '0;
-    endcase*/
+            vs3_addr = '0;
+    endcase
 end
 
 
@@ -180,7 +177,7 @@ vector_registers vreg0 (
     .vd_data(vd_data),
     .vs1_addr(vs1_addr),
     .vs2_addr(vs2_addr),
-    .vd_addr(vd_addr),
+    .vd_addr(vs3_addr),
     .vsew(vsew),
     .vlmul(vlmul),
     .elements_to_write(elements_to_write),
@@ -251,8 +248,8 @@ vector_lsu vlsu0 (
 
     .vs_wdata_o(vlsu_wdata),
     .vs_rdata_i(vs3_data),
-    .vr_addr_i(vd_addr_dec),
-    .vd_addr_o(vd_addr_vlsu),
+    .vr_addr_i(vd_addr),
+    .vs3_addr_o(vs3_addr_vlsu),
     .vr_we_o(vec_reg_write_lsu)
 );
 
@@ -263,28 +260,7 @@ logic [31:0] reg_apu_result;
 assign apu_flags_o = '0;
 assign apu_result = reg_apu_result;
 
-/*always_ff @(posedge clk, negedge n_reset)
-    if (~n_reset)
-        reg_apu_result <= '0;
-    else
-    begin
-        case (apu_result_select)
-            APU_RESULT_SRC_VL:
-                reg_apu_result <= {'0, vl};
-            APU_RESULT_SRC_VS2_0:
-                case (vsew)
-                    2'd0: // 8b
-                        reg_apu_result <= { {24{1'b0}}, vs2_data[7:0] };
-                    2'd1: // 16b
-                        reg_apu_result <= { {16{1'b0}}, vs2_data[15:0] };
-                    2'd2:// 32b
-                        reg_apu_result <= vs2_data[31:0];
-                endcase
-        endcase
-    end*/
-
 // Updated VL is arriving two cycles too late
-
 always_comb begin
     case (apu_result_select)
         APU_RESULT_SRC_VL:

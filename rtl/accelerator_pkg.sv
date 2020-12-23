@@ -60,8 +60,8 @@ typedef enum logic [1:0] {
 // VREG_ADDR_SRC_DECODE: address from decoder
 // VREG_ADDR_SRC_VLSU: address from vlsu / address unit
 typedef enum logic {
-    VREG_ADDR_SRC_DECODE,
-    VREG_ADDR_SRC_VLSU
+    VS3_ADDR_SRC_DECODE,
+    VS3_ADDR_SRC_VLSU
 } vreg_addr_src_t;
 
 // Source of data returned to CPU by via apu_result
