@@ -33,7 +33,7 @@ module address_unit(
             vd_offset_o <= 7'b0;
         else if (au_start_i)
             vd_offset_o <= 7'b0;
-        else if (au_next_i)
+        else if(current_state == WAIT)
             vd_offset_o <= vd_offset_o + cycle_bytes[4:0]; // Number of elements
         else
             vd_offset_o <= vd_offset_o;

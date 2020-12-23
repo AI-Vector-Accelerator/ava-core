@@ -90,7 +90,7 @@ temporary_reg tr (
     .clear_register     (au_start),
     .memory_read_i      (data_rdata_i),
     .byte_enable_i      (au_be),
-    .byte_select_i      (vd_offset),
+    .byte_select_i      (vd_offset + {vr_addr_i[1:0], 2'b00}),
     .wide_vd_o          (vs_wdata_o)
 );
 
@@ -114,7 +114,7 @@ always_comb begin
     vlsu_done_o = au_final;
 
     // Calculate offset of vd 
-    vd_addr_o = vr_addr_i + vd_offset[4:2] - 1;
+    vd_addr_o = vr_addr_i;
 
     if(vlsu_en_i) begin
         vlsu_ready_o = 1'b1;

@@ -198,11 +198,21 @@ begin
     if(load_operation) begin
         case (vlmul) 
             2'd0: begin
-                wr_en0 = 4'b1111;
+                case(vd_addr[1:0])
+                   0'b00 : wr_en0 = 4'b1111;
+                   0'b01 : wr_en1 = 4'b1111;
+                   0'b10 : wr_en2 = 4'b1111; 
+                   0'b11 : wr_en3 = 4'b1111;
+                endcase
             end
             2'd1: begin
-                wr_en0 = 4'b1111;
-                wr_en1 = 4'b1111;
+                if(vd_addr[1] == 1'b0) begin
+                   wr_en0 = 4'b1111;
+                   wr_en1 = 4'b1111;
+                end else begin
+                   wr_en2 = 4'b1111; 
+                   wr_en3 = 4'b1111;
+                end
             end
             2'd2: begin
                 wr_en0 = 4'b1111;
@@ -445,11 +455,21 @@ begin
     if(load_operation) begin
         case (vlmul) 
             2'd0: begin
-               vd_wr_data0 = vd_data[31:0]; 
+                case(vd_addr[1:0])
+                   0'b00 : vd_wr_data0 = vd_data[31:0]; 
+                   0'b01 : vd_wr_data1 = vd_data[63:32]; 
+                   0'b10 : vd_wr_data2 = vd_data[95:64]; 
+                   0'b11 : vd_wr_data3 = vd_data[127:96]; 
+                endcase
             end
             2'd1: begin
-                vd_wr_data1 = vd_data[63:32];
-                vd_wr_data0 = vd_data[31:0];
+                if(vd_addr[1] == 1'b0) begin
+                    vd_wr_data1 = vd_data[63:32];
+                    vd_wr_data0 = vd_data[31:0];
+                end else begin
+                    vd_wr_data3 = vd_data[127:96];
+                    vd_wr_data2 = vd_data[95:64];
+                end
             end
             2'd2: begin
                 vd_wr_data3 = vd_data[127:96];
