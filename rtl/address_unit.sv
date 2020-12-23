@@ -28,16 +28,7 @@ module address_unit(
     logic signed [6:0] byte_track, byte_track_next;
     logic cycle_load;
 
-    always_ff @(posedge clk_i, negedge n_rst_i) begin
-        if(~n_rst_i)
-            vd_offset_o <= 7'b0;
-        else if (au_start_i)
-            vd_offset_o <= 7'b0;
-        else if(current_state == WAIT)
-            vd_offset_o <= vd_offset_o + cycle_bytes[4:0]; // Number of elements
-        else
-            vd_offset_o <= vd_offset_o;
-    end
+    assign vd_offset_o = (vl_i << vsew_i) - byte_track;
 
     always_comb begin
         if(au_valid_o) begin // Make sure that all our addresses are word aligned
@@ -52,9 +43,9 @@ module address_unit(
     always_comb begin
         if(au_start_i)
             byte_track_next = {2'd0, vl_i} << vsew_i; // Bytes dependent on element size
-        else if(current_state == WAIT)
+        else if(current_state != CYCLE)
             byte_track_next = byte_track;
-        else
+        else 
             byte_track_next = (byte_track >= cycle_bytes) ? (byte_track - cycle_bytes) : 7'd0;
     end 
 
@@ -70,10 +61,10 @@ module address_unit(
             cycle_addr <= 32'd0;
         else if(au_start_i)
             cycle_addr <= base_addr_i;
-        else if(cycle_load)
-            cycle_addr <= next_el_addr;
-        else    
+        else if(current_state != CYCLE)  
             cycle_addr <= cycle_addr;
+        else 
+            cycle_addr <= next_el_addr;
     end
 
     always_ff @(posedge clk_i, negedge n_rst_i) begin
@@ -96,7 +87,7 @@ module address_unit(
                     next_el_pre = cycle_addr + stride_i;
                     if(next_el_pre[31:2] == cycle_addr[31:2] && byte_track > 1) begin
                         be_gen[next_el_pre[1:0]] = 1'b1;
-                        next_el_addr = next_el_pre + stride_i;
+                        next_el_addr = next_el_pre + stride_i; // Stride by second element
                     end else begin
                         next_el_addr = next_el_pre;
                     end
@@ -173,12 +164,12 @@ module address_unit(
                     next_state = RESET;
             end
             FIRST: begin
-                cycle_load = 1'b1;
                 au_valid_o = 1'b1;
-                if(stride_i != 0)
+                if(stride_i != 0) begin
                     next_state = WAIT;
-                else
+                end else begin
                     next_state = RESET;
+                end
             end
             CYCLE: begin
                 au_valid_o = 1'b1;
@@ -190,10 +181,10 @@ module address_unit(
                 end
             end
             WAIT: begin
-                if(byte_track_next == 0)
-                    next_state = FINAL;
-                else if(au_next_i)
+                if(au_next_i)
                     next_state = CYCLE;
+                else if(byte_track_next == 0)
+                    next_state = FINAL;
                 else
                     next_state = WAIT;
             end

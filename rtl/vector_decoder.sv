@@ -129,16 +129,15 @@ begin
         EXEC:
         begin
             core_halt_ctrl = 1'b1;
-            if (cycle_count == max_cycle_count) begin
-                if (vlsu_load_o | vlsu_store_o) begin
-                    if(vlsu_ready_i | vlsu_done_i) begin
-                        apu_rvalid = 1'b1;
-                        next_state = WAIT;
-                    end
-                end else begin
+
+            if (vlsu_load_o | vlsu_store_o) begin
+                if(vlsu_done_i) begin
                     apu_rvalid = 1'b1;
                     next_state = WAIT;
                 end
+            end else if (cycle_count == max_cycle_count) begin
+                apu_rvalid = 1'b1;
+                next_state = WAIT;
             end
         end
     endcase
@@ -152,13 +151,10 @@ always_ff @(posedge clk, negedge n_reset)
     end
     else
     begin
-        if (state == WAIT)
+        if (state == WAIT || (vlsu_load_o | vlsu_store_o))
             cycle_count <= '0;
         else
-            if((vlsu_load_o | vlsu_store_o) & vlsu_ready_i | ~(vlsu_load_o | vlsu_store_o))
-                cycle_count <= cycle_count + 1'b1;
-            else
-                cycle_count <= cycle_count;
+            cycle_count <= cycle_count;
 
     end
 

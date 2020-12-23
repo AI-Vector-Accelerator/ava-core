@@ -101,6 +101,16 @@ always_ff @(posedge clk, negedge n_reset) begin
         vr_we_o = au_final;
 end
 
+typedef enum {RESET, LOAD_START, LOAD_START_WAIT, LOAD_CYCLE, WAIT} lsu_state;
+lsu_state current_state, next_state;
+
+always_ff @(posedge clk, negedge n_reset) begin
+    if(~n_reset)
+        current_state <= RESET;
+    else
+        current_state <= next_state;
+end
+
 always_comb begin
     vlsu_ready_o = 1'b0;
     au_start = 1'b0;
@@ -111,12 +121,12 @@ always_comb begin
     data_we_o = 32'd0;
     data_be_o = au_be;
     data_wdata_o = 32'd0;
-    vlsu_done_o = au_final;
+    vlsu_done_o = 1'b0;
 
     // Calculate offset of vd 
     vd_addr_o = vr_addr_i;
 
-    if(vlsu_en_i) begin
+    /*if(vlsu_en_i) begin
         vlsu_ready_o = 1'b1;
         if(vlsu_load_i && au_ready) begin
             vlsu_ready_o = 1'b0; // Start transfer
@@ -132,7 +142,35 @@ always_comb begin
         end else if(vr_we_o) begin
             vlsu_ready_o = 1'b0;
         end
-    end
+    end*/
+
+    case(current_state)
+        RESET: begin
+            vlsu_ready_o = 1'b1;
+            if(vlsu_load_i && au_ready) begin
+                next_state = LOAD_START;
+            end
+        end
+        LOAD_START: begin
+            au_start = 1'b1;
+            next_state = LOAD_CYCLE;
+        end
+        LOAD_CYCLE: begin
+            next_state = LOAD_CYCLE;
+            if(au_valid) begin
+                data_req_o = 1'b1;
+            end else if(data_rvalid_i) begin
+                au_next = 1'b1;
+            end else if(vr_we_o) begin
+                next_state = WAIT;
+            end
+        end
+        WAIT: begin
+            next_state = RESET;
+            vlsu_done_o = 1'b1;
+        end
+    endcase
 end
+
 
 endmodule
