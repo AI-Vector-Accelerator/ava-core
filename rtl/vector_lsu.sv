@@ -41,136 +41,217 @@ module vector_lsu (
     output logic vr_we_o
 );
 
-logic [31:0] vs_rdata_sel;
-logic [5:0] vsew_size;
+    logic [31:0] vs_rdata_sel;
+    logic [5:0] vsew_size;
 
-// Converts 32-bit words into PE arithmetic format (TODO: Reverse for stores)
-mapping_unit mu (
-    .arith_format_o     (),
-    .memory_format_i    (data_rdata_i),
-    .sew_i              (vsew_i),
-    .reg_select         (vd_addr_o[1:0])
-);
+    // Converts 32-bit words into PE arithmetic format (TODO: Reverse for stores)
+    mapping_unit mu (
+        .arith_format_o     (),
+        .memory_format_i    (data_rdata_i),
+        .sew_i              (vsew_i),
+        .reg_select         (vd_addr_o[1:0])
+    );
 
-logic au_start, au_next;
-logic [3:0] au_be;
-logic [6:0] au_bc;
-logic [31:0] au_addr;
-logic au_valid, au_ready;
-logic au_final;
-logic [6:0] vd_offset;
+    logic au_start;
+    logic [3:0] au_be;
+    logic [6:0] au_bc;
+    logic [31:0] au_addr;
+    logic au_valid, au_ready;
+    logic au_final;
+    logic [6:0] vd_offset;
 
-// Calculates the address and byte enable sequences for multi-cycle loads
-address_unit au (
-    .clk_i          (clk),
-    .n_rst_i        (n_reset),
+    temporary_reg tr (
+        .clk_i              (clk), 
+        .n_rst_i            (n_reset),
+        .byte_enable_valid  (data_req_o),
+        .read_data_valid    (data_rvalid_i),
+        .clear_register     (au_start),
+        .memory_read_i      (data_rdata_i),
+        .byte_enable_i      (au_be),
+        .byte_select_i      (vd_offset + {vr_addr_i[1:0], 2'b00}),
+        .wide_vd_o          (vs_wdata_o)
+    );
 
-    .base_addr_i    (op0_data_i),
-    .stride_i       (vlsu_strided_i ? op1_data_i : (31'd1 << vsew_i) ), // If not strided, use unit stride
-    .vd_offset_o    (vd_offset),
+    always_ff @(posedge clk, negedge n_reset) begin
+        if(~n_reset)
+            vr_we_o = 1'b0;
+        else 
+            vr_we_o = au_final;
+    end
 
-    .vl_i           (vl_i),
-    .vsew_i         (vsew_i),
-    
-    .au_start_i     (au_start),
-    .au_next_i      (au_next),
-    .au_be_o        (au_be), //[ 3:0]
-    .au_addr_o      (au_addr), //[31:0]
-    .au_valid_o     (au_valid),
-    .au_ready_o     (au_ready),
-    .au_final_o     (au_final),
-    .au_bc_o        (au_bc)
-); 
+    logic [1:0] ib_select; // Low 2 bits of initial address
+    logic [3:0] be_gen;
 
-temporary_reg tr (
-    .clk_i              (clk), 
-    .n_rst_i            (n_reset),
-    .byte_enable_valid  (au_valid),
-    .read_data_valid    (data_rvalid_i),
-    .clear_register     (au_start),
-    .memory_read_i      (data_rdata_i),
-    .byte_enable_i      (au_be),
-    .byte_select_i      (vd_offset + {vr_addr_i[1:0], 2'b00}),
-    .wide_vd_o          (vs_wdata_o)
-);
+    logic [31:0] next_el_pre, next_el_addr;
+    logic [31:0] cycle_addr, stride;
+    logic [6:0] cycle_bytes;
 
-always_ff @(posedge clk, negedge n_reset) begin
-    if(~n_reset)
-        vr_we_o = 1'b0;
-    else 
-        vr_we_o = au_final;
-end
+    typedef enum {RESET, FIRST, CYCLE, WAIT, FINAL} be_state;
+    be_state current_state, next_state;
 
-typedef enum {RESET, LOAD_START, LOAD_START_WAIT, LOAD_CYCLE, WAIT} lsu_state;
-lsu_state current_state, next_state;
+    logic signed [6:0] byte_track, byte_track_next;
+    logic cycle_load, cycle_addr_inc;
 
-always_ff @(posedge clk, negedge n_reset) begin
-    if(~n_reset)
-        current_state <= RESET;
-    else
-        current_state <= next_state;
-end
+    assign stride = vlsu_strided_i ? op1_data_i : (31'd1 << vsew_i);
+    assign data_addr_o = {cycle_addr[31:2], 2'd0};
+    assign au_be = be_gen;
+    assign vd_offset = (vl_i << vsew_i) - byte_track;
 
-always_comb begin
-    vlsu_ready_o = 1'b0;
-    au_start = 1'b0;
-    au_next  = 1'b0;
+    always_comb begin
+        if(au_start)
+            byte_track_next = {2'd0, vl_i} << vsew_i; // Bytes dependent on element size
+        else if(cycle_addr_inc)
+            byte_track_next = (byte_track >= cycle_bytes) ? (byte_track - cycle_bytes) : 7'd0;
+        else 
+            byte_track_next = byte_track;
+    end 
 
-    data_req_o  = 1'b0;
-    data_addr_o = au_addr;
-    data_we_o = 32'd0;
-    data_be_o = au_be;
-    data_wdata_o = 32'd0;
-    vlsu_done_o = 1'b0;
+    always_ff @(posedge clk, negedge n_reset) begin
+        if(~n_reset)
+            byte_track <= 7'd0;
+        else 
+            byte_track <= byte_track_next;
+    end
 
-    // Calculate offset of vd 
-    vd_addr_o = vr_addr_i;
+    always_ff @(posedge clk, negedge n_reset) begin
+        if(~n_reset)
+            cycle_addr <= 32'd0;
+        else if(au_start)
+            cycle_addr <= op0_data_i;
+        else if(cycle_addr_inc)  
+            cycle_addr <= next_el_addr;
+        else 
+            cycle_addr <= cycle_addr;
+    end
 
-    /*if(vlsu_en_i) begin
-        vlsu_ready_o = 1'b1;
-        if(vlsu_load_i && au_ready) begin
-            vlsu_ready_o = 1'b0; // Start transfer
-            au_start = 1'b1;
-        end else if(vlsu_load_i && ~au_ready) begin
-            vlsu_ready_o = 1'b0;
-            if(au_valid) begin
-                data_req_o = 1'b1; // Send data request
+    always_ff @(posedge clk, negedge n_reset) begin
+        if(~n_reset)
+            current_state <= RESET;
+        else
+            current_state <= next_state;
+    end
+
+    always_comb begin
+        be_gen = 4'b0000;
+        case(vsew_i)
+            2'b00 : begin // 8 Bit
+                ib_select = cycle_addr[1:0];
+
+                if(stride > 32'd1) begin
+                    be_gen[ib_select] = 1'b1;
+
+                    // Where is our next byte?
+                    next_el_pre = cycle_addr + stride;
+                    if(next_el_pre[31:2] == cycle_addr[31:2] && byte_track > 1) begin
+                        be_gen[next_el_pre[1:0]] = 1'b1;
+                        next_el_addr = next_el_pre + stride; // Stride by second element
+                    end else begin
+                        next_el_addr = next_el_pre;
+                    end
+
+                    // Calculate the number of bytes for cycle
+                    cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};
+                end else if(stride == 1) begin
+                    be_gen[0] = (ib_select == 32'd0) ? 1 : 0;
+                    be_gen[1] = (ib_select == 1 || byte_track > 1) ? 1'b1 : 1'b0;
+                    be_gen[2] = (ib_select == 2 || byte_track > 2) ? 1'b1 : 1'b0;
+                    be_gen[3] = (ib_select == 3 || byte_track > 3) ? 1'b1 : 1'b0;
+                    next_el_addr = {cycle_addr[31:2], 2'b0} + 32'd4;
+
+                    // Calculate the number of bytes for cycle
+                    cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};    
+                end else if(stride == 32'd0) begin
+                    be_gen[ib_select] = 1'b1;
+                    cycle_bytes = {2'b0, vl_i}; // Read all bytes in 1 cycle
+                end
             end
-            if(data_rvalid_i) begin
-                au_next = 1'b1;
-            end
-        end else if(vr_we_o) begin
-            vlsu_ready_o = 1'b0;
-        end
-    end*/
+            2'b01 : begin // 16 Bit
+                ib_select = {cycle_addr[1], 1'b0}; // Force alignment byte 0 or 2
 
-    case(current_state)
-        RESET: begin
-            vlsu_ready_o = 1'b1;
-            if(vlsu_load_i && au_ready) begin
-                next_state = LOAD_START;
+                if(stride > 32'd2) begin // Always 1 element
+                    // Always set 2 bytes
+                    be_gen[ib_select] = 1'b1;   
+                    be_gen[ib_select+1] = 1'b1;
+                    next_el_addr = {cycle_addr[31:1], 1'b0} + {stride[31:1], 1'b0};
+                
+                    // Calculate the number of bytes for cycle
+                    cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};
+                end else if (stride == 32'd2) begin // Up to 2 Elements
+                    be_gen[1:0] = (ib_select == 0) ? 2'b11 : 2'b00;
+                    be_gen[3:2] = (ib_select == 2 || byte_track > 2) ? 2'b11 : 2'b00;
+                    next_el_addr = {cycle_addr[31:2], 2'b0} + 32'd4;
+                    
+                    // Calculate the number of bytes for cycle
+                    cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};
+                end else if (stride == 32'd0) begin  
+                    be_gen[ib_select] = 1'b1;
+                    be_gen[ib_select+1] = 1'b1;
+                    cycle_bytes = {1'b0, vl_i, 1'b0}; // Read all bytes in 1 cycle
+                end
             end
-        end
-        LOAD_START: begin
-            au_start = 1'b1;
-            next_state = LOAD_CYCLE;
-        end
-        LOAD_CYCLE: begin
-            next_state = LOAD_CYCLE;
-            if(au_valid) begin
-                data_req_o = 1'b1;
-            end else if(data_rvalid_i) begin
-                au_next = 1'b1;
-            end else if(vr_we_o) begin
-                next_state = WAIT;
+            2'b10 : begin // 32 Bit
+                ib_select = 2'd0; // Force alignment to byte 0
+
+                if(stride >= 32'd4) begin // Always 1 element
+                    be_gen = 4'b1111;
+                    next_el_addr = {cycle_addr[31:2], 2'b0} + {stride[31:2], 2'b0}; // stride is always a multiple of 4
+                    
+                    // Calculate the number of bytes for cycle
+                    cycle_bytes = {5'd0, be_gen[3]} + {5'd0, be_gen[2]} + {5'd0, be_gen[1]} + {5'd0, be_gen[0]};
+                end else if(stride == 32'd0) begin
+                    be_gen = 4'b1111;
+                    cycle_bytes = {1'b0, vl_i, 1'b0}; // Read all bytes in 1 cycle
+                end
             end
-        end
-        WAIT: begin
-            next_state = RESET;
-            vlsu_done_o = 1'b1;
-        end
-    endcase
-end
+            default : $error("Invalid VSEW"); 
+        endcase
+    end
+
+    always_comb begin
+        cycle_load = 1'b0;
+        data_req_o = 1'b0;
+        au_start = 1'b0;
+        au_ready = 1'b0;
+        au_final = 1'b0;
+        vlsu_done_o = 1'b0;
+        cycle_addr_inc = 1'b0;
+        case(current_state)
+            RESET: begin
+                vlsu_ready_o = 1'b1; 
+                if(vlsu_load_i) begin
+                    au_start = 1'b1;
+                    next_state = FIRST;
+                end else
+                    next_state = RESET;
+            end
+            FIRST: begin
+                next_state = CYCLE;
+            end
+            CYCLE: begin
+                if(byte_track_next == 0) begin
+                    next_state = WAIT;
+                end else begin
+                    data_req_o = 1'b1;
+                    cycle_load = 1'b1;
+                    next_state = WAIT;
+                end
+            end
+            WAIT: begin
+                if(data_rvalid_i) begin
+                    cycle_addr_inc = 1'b1;
+                    next_state = CYCLE;
+                end else if(byte_track_next == 0)
+                    next_state = FINAL;
+                else
+                    next_state = WAIT;
+            end
+            FINAL: begin
+                au_final = 1'b1;
+                next_state = RESET;
+                vlsu_done_o = 1'b1;
+            end
+        endcase
+    end
 
 
 endmodule

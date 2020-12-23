@@ -160,14 +160,16 @@ always_comb begin
             vd_data = '0;
     endcase
 
-    case (vd_addr_src)
+    vd_addr = vd_addr_dec;
+
+    /*case (vd_addr_src)
         VREG_ADDR_SRC_DECODE:
             vd_addr = vd_addr_dec;
         VREG_ADDR_SRC_VLSU:
             vd_addr = vd_addr_vlsu;
         default:
             vd_addr = '0;
-    endcase
+    endcase*/
 end
 
 

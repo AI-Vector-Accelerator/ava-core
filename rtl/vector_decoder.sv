@@ -154,7 +154,7 @@ always_ff @(posedge clk, negedge n_reset)
         if (state == WAIT || (vlsu_load_o | vlsu_store_o))
             cycle_count <= '0;
         else
-            cycle_count <= cycle_count;
+            cycle_count <= cycle_count + 1'b1;
 
     end
 
