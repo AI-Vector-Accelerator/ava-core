@@ -106,14 +106,14 @@ module vector_lsu (
     logic signed [6:0] byte_track, byte_track_next;
     logic cycle_load, cycle_addr_inc, store_cycles_inc;
 
+    logic [1:0] store_cycle_bytes;
+    logic [3:0] store_cycle_be;
+    logic [1:0] store_cycles, store_cycles_cnt;
+
     assign stride = vlsu_strided_i ? op1_data_i : (31'd1 << vsew_i);
     assign data_addr_o = vlsu_store_i ? ({cycle_addr[31:2], 2'd0} + (store_cycles_cnt << 2)) : {cycle_addr[31:2], 2'd0};
     assign au_be = be_gen;
     assign vd_offset = (vl_i << vsew_i) - byte_track;
-
-    logic [1:0] store_cycle_bytes;
-    logic [3:0] store_cycle_be;
-    logic [1:0] store_cycles, store_cycles_cnt;
 
     always_comb begin
         store_cycle_bytes = byte_track % 4;

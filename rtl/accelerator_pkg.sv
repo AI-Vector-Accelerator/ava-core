@@ -57,8 +57,8 @@ typedef enum logic [1:0] {
 } vreg_wb_src_t;
 
 // Source of address of selected vector register
-// VREG_ADDR_SRC_DECODE: address from decoder
-// VREG_ADDR_SRC_VLSU: address from vlsu / address unit
+// VS3_ADDR_SRC_DECODE: address from decoder
+// VS3_ADDR_SRC_VLSU: address from vlsu / address unit
 typedef enum logic {
     VS3_ADDR_SRC_DECODE,
     VS3_ADDR_SRC_VLSU
