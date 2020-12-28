@@ -63,6 +63,12 @@ logic vec_reg_write_lsu;
 logic vlsu_done;
 logic [4:0] vl_next_comb;
 
+logic vlsu_en;
+logic vlsu_load;
+logic vlsu_store;
+logic vlsu_strided;
+logic vlsu_ready;
+
 // VECTOR REGISTERS OUTPUTS
 wire [127:0] vs1_data;
 wire [127:0] vs2_data;
