@@ -49,7 +49,6 @@ module vector_lsu (
     logic [6:0] au_bc;
     logic [31:0] au_addr;
     logic au_valid, au_ready;
-    logic au_final;
     logic [6:0] vd_offset;
 
     temporary_reg tr (
@@ -84,13 +83,6 @@ module vector_lsu (
                 endcase
             end
         endcase
-    end
-
-    always_ff @(posedge clk, negedge n_reset) begin
-        if(~n_reset)
-            vr_we_o = 1'b0;
-        else 
-            vr_we_o = au_final;
     end
 
     logic [1:0] ib_select; // Low 2 bits of initial address
@@ -175,6 +167,7 @@ module vector_lsu (
 
     always_comb begin
         be_gen = 4'b0000;
+        next_el_pre = '0;
         case(vsew_i)
             2'b00 : begin // 8 Bit
                 ib_select = cycle_addr[1:0];
@@ -255,11 +248,11 @@ module vector_lsu (
         data_we_o = 1'b0;
         au_start = 1'b0;
         au_ready = 1'b0;
-        au_final = 1'b0;
         vlsu_done_o = 1'b0;
         vlsu_ready_o = 1'b0; 
         cycle_addr_inc = 1'b0;
         store_cycles_inc = 1'b0;
+        vr_we_o = 1'b0;
         case(current_state)
             RESET: begin
                 vlsu_ready_o = 1'b1; 
@@ -295,9 +288,9 @@ module vector_lsu (
                     next_state = LOAD_WAIT;
             end
             LOAD_FINAL: begin
-                au_final = 1'b1;
                 next_state = RESET;
                 vlsu_done_o = 1'b1;
+                vr_we_o = 1'b1;
             end
             STORE_CYCLE: begin
                 data_req_o = 1'b1;
