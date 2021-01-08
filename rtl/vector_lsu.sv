@@ -64,6 +64,7 @@ module vector_lsu (
     );
 
     always_comb begin
+		  data_wdata_o = 'd0;
         case(vsew_i)
             2'd0 : begin
                 data_wdata_o = {vs_rdata_i[103:96], vs_rdata_i[71:64], vs_rdata_i[39:32], vs_rdata_i[7:0]};
@@ -98,24 +99,26 @@ module vector_lsu (
     logic signed [6:0] byte_track, byte_track_next;
     logic cycle_load, cycle_addr_inc, store_cycles_inc;
 
-    logic [1:0] store_cycle_bytes;
+    logic [2:0] store_cycle_bytes;
     logic [3:0] store_cycle_be;
-    logic [1:0] store_cycles, store_cycles_cnt;
+    logic [2:0] store_cycles, store_cycles_cnt;
 
-    assign stride = vlsu_strided_i ? op1_data_i : (31'd1 << vsew_i);
+    assign stride = vlsu_strided_i ? op1_data_i : (32'd1 << vsew_i);
     assign data_addr_o = vlsu_store_i ? ({cycle_addr[31:2], 2'd0} + (store_cycles_cnt << 2)) : {cycle_addr[31:2], 2'd0};
     assign au_be = be_gen;
     assign vd_offset = (vl_i << vsew_i) - byte_track;
 
     always_comb begin
-        store_cycle_bytes = byte_track % 4;
-        case(store_cycle_bytes)
-            2'd0 : store_cycle_be = 4'b1111;
-            2'd1 : store_cycle_be = 4'b0001;
-            2'd2 : store_cycle_be = 4'b0011;
-            2'd3 : store_cycle_be = 4'b0111;
-        endcase
-        assign data_be_o = vlsu_store_i ? store_cycle_be : 4'b1111;
+        if(byte_track >= 4)
+            store_cycle_be = 4'b1111;
+        else if(byte_track >= 3)
+            store_cycle_be = 4'b0111;
+        else if(byte_track >= 2)
+            store_cycle_be = 4'b0011;
+        else
+            store_cycle_be = 4'b0001;
+
+        data_be_o = vlsu_store_i ? store_cycle_be : 4'b1111;
     end 
 
     always_comb begin
@@ -147,7 +150,7 @@ module vector_lsu (
             cycle_addr <= cycle_addr;
     end
 
-    assign store_cycles = (vl_i-1 >> 2-vsew_i);
+    assign store_cycles = (vl_i >> 2-vsew_i)+1;
     assign vs3_addr_o = vr_addr_i + store_cycles_cnt;
     always_ff @(posedge clk, negedge n_reset) begin
         if(~n_reset)
@@ -155,7 +158,7 @@ module vector_lsu (
         else if(au_start)
             store_cycles_cnt <= 2'd0;
         else if (store_cycles_inc)
-            store_cycles_cnt <= store_cycles_cnt + 2'b1;
+            store_cycles_cnt <= store_cycles_cnt + 2'd1;
     end
 
     always_ff @(posedge clk, negedge n_reset) begin
@@ -168,6 +171,9 @@ module vector_lsu (
     always_comb begin
         be_gen = 4'b0000;
         next_el_pre = '0;
+		  cycle_bytes = '0;
+		  ib_select = '0;
+		  next_el_addr = '0;
         case(vsew_i)
             2'b00 : begin // 8 Bit
                 ib_select = cycle_addr[1:0];
