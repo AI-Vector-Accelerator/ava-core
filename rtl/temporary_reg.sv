@@ -39,7 +39,6 @@ module temporary_reg (
     logic [3:0] packed_set;
 
     always_comb begin
-		  memory_read_packed = '{default:0};
         packed_set = 4'b0000;
         if(byte_enable_reg[0]) begin
             packed_set[0] = 1'b1;
@@ -55,9 +54,6 @@ module temporary_reg (
                     packed_set[1] = 1'b1;
                     memory_read_packed[1] = memory_read_bytes[1];
                 end
-					 default: begin
-						  memory_read_packed[1] = '0;
-					 end
             endcase
         end
         if(byte_enable_reg[2]) begin
@@ -74,9 +70,6 @@ module temporary_reg (
                     packed_set[2] = 1'b1;
                     memory_read_packed[2] = memory_read_bytes[2];
                 end
-					 default: begin
-						  memory_read_packed[2] = '0;
-					 end
             endcase
         end
         if(byte_enable_reg[3]) begin
@@ -97,9 +90,6 @@ module temporary_reg (
                     packed_set[3] = 1'b1;
                     memory_read_packed[3] = memory_read_bytes[3];
                 end
-					 default: begin
-						  memory_read_packed[3] = '0;
-					 end
             endcase
         end
     end
@@ -118,9 +108,9 @@ module temporary_reg (
         end
     end
 
-    assign wide_vd_o = {temp_reg[15], temp_reg[14], temp_reg[13], temp_reg[12],
+    assign wide_vd_o = {>>{ temp_reg[15], temp_reg[14], temp_reg[13], temp_reg[12],
                             temp_reg[11], temp_reg[10], temp_reg[ 9], temp_reg[ 8], 
                             temp_reg[ 7], temp_reg[ 6], temp_reg[ 5], temp_reg[ 4], 
-                            temp_reg[ 3], temp_reg[ 2], temp_reg[ 1], temp_reg[ 0]};
+                            temp_reg[ 3], temp_reg[ 2], temp_reg[ 1], temp_reg[ 0] }};
 
 endmodule

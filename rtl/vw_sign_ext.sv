@@ -13,10 +13,7 @@ module vw_sign_ext (
     input wire wide_b
 );
 
-always_comb begin
-	 sign_ext_a = '0;
-	 sign_ext_b = '0;
-	 sign_ext_c = '0;
+always_comb
     case(vsew)
         2'd0: // 8b
         begin
@@ -60,6 +57,5 @@ always_comb begin
             sign_ext_c = c;
         end
     endcase
-end
-	 
+
 endmodule

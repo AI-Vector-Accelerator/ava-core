@@ -268,7 +268,6 @@ assign apu_result = reg_apu_result;
 
 // Updated VL is arriving two cycles too late
 always_comb begin
-	 reg_apu_result = '0;
     case (apu_result_select)
         APU_RESULT_SRC_VL:
             reg_apu_result = {'0, vl_next_comb};

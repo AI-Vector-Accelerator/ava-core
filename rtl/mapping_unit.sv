@@ -8,7 +8,7 @@ module mapping_unit
 
 
     
-                vd_wr_data0 = '{
+                vd_wr_data0 = {
                     vd_data[103:96],
                     vd_data[71:64],
                     vd_data[39:32],
