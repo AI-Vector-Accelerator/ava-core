@@ -179,12 +179,7 @@ begin
             if (fix_vd_addr)
                 vd_addr = destination;
             else
-            begin
-                if(widening[0])
-                    vd_addr = destination + {cycle_count, 1'b0};
-                else
-                    vd_addr = destination + cycle_count;
-            end
+                vd_addr = destination + cycle_count;
         end
         2'd1: // 16b
         begin
