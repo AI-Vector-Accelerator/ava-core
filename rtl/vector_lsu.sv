@@ -100,7 +100,7 @@ module vector_lsu (
     logic cycle_load, cycle_addr_inc, store_cycles_inc;
 
     logic [2:0] store_cycle_bytes;
-    logic [3:0] store_cycle_be, store_cycle_be_gen;
+    logic [3:0] store_cycle_be;
     logic [2:0] store_cycles, store_cycles_cnt;
 
     assign stride = vlsu_strided_i ? op1_data_i : (32'd1 << vsew_i);
@@ -110,16 +110,13 @@ module vector_lsu (
 
     always_comb begin
         if(byte_track >= 4)
-            store_cycle_be_gen = 4'b1111;
+            store_cycle_be = 4'b1111;
         else if(byte_track >= 3)
-            store_cycle_be_gen = 4'b0111;
+            store_cycle_be = 4'b0111;
         else if(byte_track >= 2)
-            store_cycle_be_gen = 4'b0011;
+            store_cycle_be = 4'b0011;
         else
-            store_cycle_be_gen = 4'b0001;
-
-        store_cycle_be = (store_cycles_cnt == 0) : store_cycle_be_gen << cycle_addr[1:0] : store_cycle_be_gen;
-        store_cycle_bytes = {1'd0, store_cycle_be[3]} + {1'd0, store_cycle_be[2]} + {1'd0, store_cycle_be[1]} + {1'd0, store_cycle_be[0]};
+            store_cycle_be = 4'b0001;
 
         data_be_o = vlsu_store_i ? store_cycle_be : 4'b1111;
     end 
