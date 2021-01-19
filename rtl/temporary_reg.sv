@@ -1,3 +1,17 @@
+//
+// SPDX-License-Identifier: CERN-OHL-S-2.0+
+//
+// Copyright (C) 2020-21 Embecosm Limited <www.embecosm.com>
+// Contributed by:
+// Byron Theobald <bt4g16@soton.ac.uk>
+//
+// This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+// INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR
+// A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+// conditions.
+// Source location: https://github.com/AI-Vector-Accelerator
+//
+
 // 32-Bit input, byte_position selects the bytes to load.
 // Selected bytes will be packed and loaded into the 
 // register starting from byte_loaded

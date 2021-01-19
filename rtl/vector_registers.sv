@@ -1,3 +1,18 @@
+//
+// SPDX-License-Identifier: CERN-OHL-S-2.0+
+//
+// Copyright (C) 2020-21 Embecosm Limited <www.embecosm.com>
+// Contributed by:
+// Matthew Johns <mrj1g17@soton.ac.uk>
+// Byron Theobald <bt4g16@soton.ac.uk>
+//
+// This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+// INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR
+// A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+// conditions.
+// Source location: https://github.com/AI-Vector-Accelerator
+//
+
 module vector_registers (
     output logic [127:0] vs1_data,
     output logic [127:0] vs2_data,

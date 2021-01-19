@@ -1,3 +1,17 @@
+//
+// SPDX-License-Identifier: CERN-OHL-S-2.0+
+//
+// Copyright (C) 2020-21 Embecosm Limited <www.embecosm.com>
+// Contributed by:
+// Matthew Johns <mrj1g17@soton.ac.uk>
+//
+// This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY,
+// INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR
+// A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+// conditions.
+// Source location: https://github.com/AI-Vector-Accelerator
+//
+
 // NOTE (Matthew Johns) - there is similarity between parts of this code and the
 // proc_unit.sv module made by me in my third-year project. This is because the
 // functionality is similar and therefore I'm using what I learnt previously.
